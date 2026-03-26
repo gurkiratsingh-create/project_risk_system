@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Project Risk & Delay Prediction System</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CSS FILE -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <nav class="top-nav">
+
+    <!-- LEFT — Logo -->
+    <div class="nav-left">
+        <a href="/" class="nav-logo" style="text-decoration:none;">
+            <div style="width:36px;height:36px;border-radius:10px;
+                        background:linear-gradient(135deg,#6d28d9,#db2877);
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <polygon points="9,2 16,6 16,12 9,16 2,12 2,6"
+                             stroke="white" stroke-width="1.5"
+                             fill="none" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span style="font-size:18px;font-weight:700;letter-spacing:-0.02em;
+                         background:linear-gradient(90deg,#818cf8,#c084fc,#f472b6);
+                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                         background-clip:text;">RiskPulse</span>
+        </a>
+    </div>
+
+    <!-- CENTER — Nav Links (set "active" on current page) -->
+    <div class="nav-center">
+        <a href="/"          class="nav-link">Dashboard</a>
+        <a href="/projects"  class="nav-link">Projects</a>
+        <a href="/analytics" class="nav-link">Analytics</a>
+        <a href="/reports"   class="nav-link">Reports</a>
+    </div>
+
+    <!-- RIGHT — Icons + Profile -->
+    <div class="nav-right">
+
+        <!-- Notifications -->
+        <button class="nav-icon-btn" title="Notifications" aria-label="Notifications">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="badge"></span>
+        </button>
+
+        <!-- Settings -->
+        <button class="nav-icon-btn" title="Settings" aria-label="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+
+        <!-- Profile Dropdown -->
+        <div class="profile" onclick="toggleDropdown()">
+            <div class="profile-avatar">
+                {{ current_user.username[0].upper() }}
+            </div>
+            <div class="profile-info">
+                <div class="profile-name">{{ current_user.username }}</div>
+                <div class="profile-role">Admin</div>
+            </div>
+            <svg class="profile-arrow" width="12" height="12" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+
+            <div class="dropdown" id="profileDropdown">
+                <div class="dropdown-header">
+                    <div class="dropdown-user-name">{{ current_user.username }}</div>
+                    <div class="dropdown-user-email">{{ current_user.email }}</div>
+                </div>
+                <div class="dropdown-section">
+                    <a href="/profile" class="dropdown-item">
+                        <svg class="dropdown-item-icon" width="16" height="16"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Your Profile</span>
+                    </a>
+                    <a href="/settings" class="dropdown-item">
+                        <svg class="dropdown-item-icon" width="16" height="16"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6"></path>
+                        </svg>
+                        <span>Settings</span>
+                    </a>
+                    <a href="/billing" class="dropdown-item">
+                        <svg class="dropdown-item-icon" width="16" height="16"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                            <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                        <span>Billing</span>
+                    </a>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <a href="/logout" class="dropdown-item danger">
+                        <svg class="dropdown-item-icon" width="16" height="16"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</nav>
+    <!-- HEADER -->
+    <header>
+        <div class="page-indicator">
+        <span class="page-indicator-home">🏠</span>
+        <span class="page-indicator-separator">›</span>
+        <span class="page-indicator-current">Dashboard</span>
+        <span class="page-indicator-dot"></span>
+    </div>
+        <div class="header-badge">AI-Powered Analytics</div>
+        <h1>Project Risk & Delay<br>Prediction System</h1>
+        <p class="subtitle">Real-time ML-driven risk intelligence for project managers</p>
+        <div class="live-badge"><div class="live-dot"></div> LIVE MONITORING</div>
+    </header>
+
+    <!-- KPI ROW -->
+    <div class="grid-4 mb-20">
+        <div class="kpi-card accent">
+            <div class="kpi-value" id="kpi-total">0</div>
+            <div class="kpi-label">Total Projects</div>
+        </div>
+        <div class="kpi-card danger">
+            <div class="kpi-value" id="kpi-delayed">0</div>
+            <div class="kpi-label">At Risk</div>
+        </div>
+        <div class="kpi-card success">
+            <div class="kpi-value" id="kpi-ontrack">0</div>
+            <div class="kpi-label">On Track</div>
+        </div>
+        <div class="kpi-card warn">
+            <div class="kpi-value" id="kpi-avgrisk">0%</div>
+            <div class="kpi-label">Avg Risk Score</div>
+        </div>
+    </div>
+
+   
+
+ <!-- =============================== -->
+<!-- LIVE RISK GAUGE -->
+<!-- =============================== -->
+
+<div class="card mb-20" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+
+    <div class="card-title">
+        <span class="icon">🎯</span> Live Risk Gauge
+    </div>
+
+    <div class="risk-meter-container">
+
+        <div id="gaugeProjectName"
+             style="font-size:15px;font-weight:600;margin-bottom:12px;opacity:0.9;">
+            No project analyzed
+        </div>
+
+        <div class="gauge-wrap">
+
+            <svg class="gauge-svg" viewBox="0 0 200 110" width="200" height="110">
+
+                <!-- Track -->
+                <path class="gauge-track"
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    stroke-dasharray="251"
+                    stroke-dashoffset="0"/>
+
+                <!-- Fill -->
+                <path class="gauge-fill"
+                    id="gaugeFill"
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    stroke="#63b3ed"
+                    stroke-dasharray="251"
+                    stroke-dashoffset="251"/>
+
+                <!-- Gauge Number -->
+                <text class="gauge-number"
+                    id="gaugeNumber"
+                    x="100"
+                    y="95">—</text>
+
+                <text class="gauge-label"
+                    x="100"
+                    y="112">RISK SCORE</text>
+
+            </svg>
+
+        </div>
+
+        <div class="risk-status-pill"
+             id="statusPill"
+             style="background:rgba(255,255,255,0.05);
+                    color:#718096;
+                    border:1px solid rgba(255,255,255,0.1);">
+
+            Awaiting Analysis
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =============================== -->
+<!-- MANAGER INSIGHTS -->
+<!-- =============================== -->
+
+<div class="card mb-20">
+
+    <div class="card-title">
+        <span class="icon">🧠</span> Manager Insights
+    </div>
+
+    <div id="insights">
+
+        <div class="empty-state">
+            <div class="empty-icon">💡</div>
+            <p>Insights will appear after analysis.</p>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =============================== -->
+<!-- RISK TREND CHART -->
+<!-- =============================== -->
+
+<div class="card mb-20">
+
+    <div class="chart-header">
+        <div class="card-title">
+            <span class="icon">📈</span> Risk Trend Analysis
+        </div>
+
+    
+    </div>
+
+    <div class="chart-wrapper">
+        <canvas id="chart"></canvas>
+    </div>
+
+</div>
+
+</div>
+</body>
+<footer>
+    Built by <span>Gurkirat Singh</span> &nbsp;|&nbsp; Real-Time Project Risk & Delay Prediction System
+</footer>
+<!-- JS FILE -->
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

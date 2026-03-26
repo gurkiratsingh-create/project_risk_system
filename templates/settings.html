@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | RiskPulse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+
+/* ================================================
+   SETTINGS PAGE — extends main style.css
+   All selectors scoped to avoid conflicts
+   ================================================ */
+
+/* ---- animated mesh background (matches main) ---- */
+body {
+    background: var(--bg-secondary, #F8FAFC);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+        radial-gradient(at 15% 20%, rgba(102,126,234,.12) 0, transparent 55%),
+        radial-gradient(at 85% 10%, rgba(236, 72,153,.09) 0, transparent 50%),
+        radial-gradient(at 5%  80%, rgba(59, 130,246,.08) 0, transparent 50%),
+        radial-gradient(at 90% 75%, rgba(139, 92,246,.10) 0, transparent 50%);
+    animation: meshDrift 20s ease-in-out infinite alternate;
+    pointer-events: none; z-index: 0;
+}
+
+@keyframes meshDrift {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(20px,-20px) scale(1.04); }
+}
+
+/* ---- page reveal ---- */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn   { from{opacity:0;filter:blur(4px)}           to{opacity:1;filter:blur(0)} }
+@keyframes slideIn  { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:translateX(0)} }
+@keyframes popIn    { from{opacity:0;transform:scale(.7)}         to{opacity:1;transform:scale(1)} }
+@keyframes shimmer  { from{background-position:-600px 0} to{background-position:600px 0} }
+@keyframes borderFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+@keyframes savedPop { 0%{opacity:0;transform:scale(.6) translateY(6px)} 60%{transform:scale(1.1)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes tabLine  { from{width:0} to{width:100%} }
+
+/* ================================================
+   LAYOUT
+   ================================================ */
+.settings-page {
+    position: relative; z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px 80px;
+}
+
+/* ---- page header ---- */
+.settings-header {
+    padding: 36px 0 32px;
+    animation: fadeUp .7s cubic-bezier(.4,0,.2,1) both;
+}
+
+.settings-header .page-indicator {
+    margin-bottom: 14px;
+}
+
+.settings-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(28px,4vw,40px);
+    font-weight: 800;
+    letter-spacing: -.03em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #1e293b 0%, #4c1d95 55%, #be185d 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: borderFlow 8s ease infinite;
+}
+
+.settings-subtitle {
+    font-size: 15px;
+    color: #475569;
+    font-weight: 400;
+}
+
+/* ================================================
+   TAB NAVIGATION
+   ================================================ */
+.settings-tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,.7);
+    border: 1px solid rgba(148,163,184,.2);
+    border-radius: 14px;
+    padding: 5px;
+    margin-bottom: 28px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    animation: fadeUp .7s cubic-bezier(.4,0,.2,1) .1s both;
+    flex-wrap: wrap;
+}
+
+.s-tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px; font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    transition: all .2s cubic-bezier(.4,0,.2,1);
+    position: relative; white-space: nowrap;
+}
+
+.s-tab:hover { color: #1e293b; background: rgba(248,250,252,.9); }
+
+.s-tab.active {
+    color: #6366f1;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.s-tab.active::after {
+    content: '';
+    position: absolute; bottom: 5px; left: 18px;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea, #ec4899);
+    border-radius: 9999px;
+    animation: tabLine .3s ease forwards;
+}
+
+.s-tab-icon { font-size: 15px; }
+
+/* ================================================
+   SETTINGS GRID
+   ================================================ */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+/* ---- sidebar nav ---- */
+.settings-sidenav {
+    background: rgba(255,255,255,.82);
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 20px;
+    padding: 10px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 20px rgba(0,0,0,.06);
+    position: sticky; top: 90px;
+    animation: slideIn .7s cubic-bezier(.4,0,.2,1) .15s both;
+}
+
+.sidenav-section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: #94a3b8;
+    padding: 10px 12px 6px;
+}
+
+.sidenav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px; font-weight: 600; color: #475569;
+    cursor: pointer;
+    transition: all .18s cubic-bezier(.4,0,.2,1);
+    position: relative; overflow: hidden;
+    text-decoration: none;
+}
+
+.sidenav-item::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg,transparent,rgba(102,126,234,.08),transparent);
+    transform: translateX(-100%);
+    transition: transform .5s;
+}
+.sidenav-item:hover::before { transform: translateX(100%); }
+.sidenav-item:hover { color: #1e293b; background: rgba(248,250,252,.9); }
+
+.sidenav-item.active {
+    color: #6366f1;
+    background: linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.08));
+    border: 1px solid rgba(99,102,241,.18);
+}
+
+.sidenav-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.sidenav-item:hover .sidenav-icon { transform: scale(1.15) rotate(-5deg); }
+
+.si-purple { background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.2); }
+.si-blue   { background:rgba(59,130,246,.12); border:1px solid rgba(59,130,246,.2); }
+.si-pink   { background:rgba(236,72,153,.12); border:1px solid rgba(236,72,153,.2); }
+.si-orange { background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.2); }
+.si-red    { background:rgba(239,68,68,.12);  border:1px solid rgba(239,68,68,.2); }
+.si-green  { background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.2); }
+
+.sidenav-divider {
+    height: 1px;
+    background: rgba(148,163,184,.15);
+    margin: 8px 10px;
+}
+
+/* ================================================
+   SETTINGS CONTENT PANELS
+   ================================================ */
+.settings-content { display: flex; flex-direction: column; gap: 20px; }
+
+.s-panel {
+    display: none;
+    animation: fadeUp .5s cubic-bezier(.4,0,.2,1) both;
+}
+.s-panel.active { display: flex; flex-direction: column; gap: 20px; }
+
+/* ---- section card ---- */
+.s-card {
+    background: rgba(255,255,255,.85);
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 20px rgba(0,0,0,.06);
+    overflow: hidden;
+    transition: box-shadow .3s, transform .3s, border-color .3s;
+    position: relative;
+}
+
+/* animated top border on hover */
+.s-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg,#667eea,#a855f7,#ec4899,#667eea);
+    background-size: 300% 100%;
+    animation: borderFlow 4s linear infinite;
+    opacity: 0;
+    transition: opacity .3s;
+    border-radius: 20px 20px 0 0;
+}
+.s-card:hover::before { opacity: 1; }
+.s-card:hover {
+    box-shadow: 0 12px 40px rgba(0,0,0,.1), 0 0 30px rgba(102,126,234,.1);
+    transform: translateY(-2px);
+    border-color: rgba(102,126,234,.25);
+}
+
+.s-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(148,163,184,.12);
+}
+
+.s-card-title {
+    font-size: 15px; font-weight: 700; color: #0f172a;
+    letter-spacing: -.02em;
+    display: flex; align-items: center; gap: 10px;
+}
+
+.s-card-title-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+
+.s-card-desc {
+    font-size: 12px; color: #94a3b8; font-weight: 500;
+}
+
+.s-card-body { padding: 20px 24px; }
+
+/* ================================================
+   SETTING ROWS
+   ================================================ */
+.s-rows { display: flex; flex-direction: column; }
+
+.s-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(148,163,184,.1);
+    transition: background .15s;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 14px 10px;
+    margin: 0 -10px;
+}
+.s-row:last-child { border-bottom: none; }
+.s-row:hover { background: rgba(248,250,252,.9); }
+
+.s-row-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+
+.s-row-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; flex-shrink: 0;
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.s-row:hover .s-row-icon { transform: scale(1.12) rotate(-6deg); }
+
+.s-row-text h4 {
+    font-size: 14px; font-weight: 600; color: #0f172a;
+    margin-bottom: 2px; letter-spacing: -.01em;
+}
+.s-row-text p {
+    font-size: 12px; color: #64748b; line-height: 1.4;
+}
+
+/* ---- premium toggle ---- */
+.s-toggle {
+    appearance: none; -webkit-appearance: none;
+    width: 50px; height: 27px;
+    border-radius: 27px;
+    background: rgba(148,163,184,.25);
+    border: 1.5px solid rgba(148,163,184,.2);
+    position: relative; cursor: pointer; outline: none;
+    flex-shrink: 0;
+    transition: background .3s, border-color .3s, box-shadow .3s;
+}
+.s-toggle::after {
+    content: ''; position: absolute;
+    top: 3px; left: 3px;
+    width: 19px; height: 19px;
+    background: white; border-radius: 50%;
+    box-shadow: 0 2px 7px rgba(0,0,0,.18);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), width .2s;
+}
+.s-toggle:checked {
+    background: linear-gradient(135deg,#667eea,#a855f7);
+    border-color: transparent;
+    box-shadow: 0 0 0 4px rgba(102,126,234,.12), 0 4px 12px rgba(102,126,234,.3);
+}
+.s-toggle:checked::after { transform: translateX(23px); }
+.s-toggle:active::after  { width: 25px; }
+.s-toggle:checked:active::after { transform: translateX(17px); width: 25px; }
+
+/* ---- select input ---- */
+.s-select {
+    appearance: none;
+    background: rgba(248,250,252,.9) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
+    border: 1.5px solid rgba(148,163,184,.25);
+    border-radius: 10px;
+    padding: 8px 36px 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; color: #0f172a;
+    cursor: pointer;
+    min-width: 140px;
+    transition: all .2s;
+    outline: none;
+}
+.s-select:hover { border-color: rgba(102,126,234,.4); }
+.s-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99,102,241,.12);
+}
+
+/* ---- text input ---- */
+.s-input {
+    width: 100%; padding: 11px 14px;
+    background: rgba(248,250,252,.9);
+    border: 1.5px solid rgba(148,163,184,.22);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; color: #0f172a;
+    transition: all .2s; outline: none;
+}
+.s-input:hover { border-color: rgba(102,126,234,.35); }
+.s-input:focus {
+    border-color: #6366f1;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(99,102,241,.1);
+    transform: translateY(-1px);
+}
+.s-input::placeholder { color: #94a3b8; }
+
+/* ---- form grid ---- */
+.s-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+.s-form-grid.single { grid-template-columns: 1fr; }
+
+.s-field { display: flex; flex-direction: column; gap: 6px; }
+.s-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: #64748b;
+}
+
+/* ---- avatar upload ---- */
+.s-avatar-section {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px;
+    background: rgba(248,250,252,.6);
+    border-radius: 14px;
+    border: 1.5px dashed rgba(148,163,184,.3);
+    margin-bottom: 20px;
+    transition: border-color .2s, background .2s;
+    cursor: pointer;
+}
+.s-avatar-section:hover {
+    border-color: rgba(102,126,234,.5);
+    background: rgba(248,250,252,.9);
+}
+
+.s-avatar-ring {
+    width: 72px; height: 72px; border-radius: 50%; padding: 2.5px;
+    background: linear-gradient(135deg,#667eea,#a855f7,#ec4899);
+    background-size: 200% 200%;
+    animation: borderFlow 4s ease infinite;
+    flex-shrink: 0;
+}
+.s-avatar-inner {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: linear-gradient(135deg,#ede9fe,#f0f0ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 900; color: #6366f1;
+    border: 2.5px solid white;
+}
+
+.s-avatar-info h4 { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+.s-avatar-info p  { font-size: 12px; color: #64748b; }
+
+.s-avatar-btns { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ---- buttons ---- */
+.s-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; border: none;
+    transition: all .2s cubic-bezier(.34,1.56,.64,1);
+    position: relative; overflow: hidden;
+}
+.s-btn:active { transform: scale(.97); }
+
+.s-btn-primary {
+    background: linear-gradient(135deg,#667eea,#a855f7,#ec4899);
+    background-size: 200% 200%;
+    animation: borderFlow 4s ease infinite;
+    color: white;
+    box-shadow: 0 4px 16px rgba(102,126,234,.35);
+}
+.s-btn-primary::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom,rgba(255,255,255,.12),transparent);
+    pointer-events: none;
+}
+.s-btn-primary:hover {
+    box-shadow: 0 8px 24px rgba(102,126,234,.5);
+    transform: translateY(-2px);
+}
+
+.s-btn-ghost {
+    background: transparent; color: #475569;
+    border: 1.5px solid rgba(148,163,184,.3);
+}
+.s-btn-ghost:hover {
+    background: rgba(248,250,252,.9); color: #0f172a;
+    border-color: rgba(102,126,234,.35);
+}
+
+.s-btn-danger {
+    background: rgba(239,68,68,.1); color: #dc2626;
+    border: 1.5px solid rgba(239,68,68,.25);
+}
+.s-btn-danger:hover {
+    background: rgba(239,68,68,.18);
+    box-shadow: 0 4px 14px rgba(239,68,68,.2);
+}
+
+.s-btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+
+/* ---- save button row ---- */
+.s-save-row {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(148,163,184,.12);
+    margin-top: 4px;
+}
+
+/* ---- saved badge ---- */
+.s-saved-badge {
+    display: none;
+    align-items: center; gap: 6px;
+    padding: 8px 14px;
+    background: rgba(16,185,129,.1);
+    border: 1px solid rgba(16,185,129,.25);
+    border-radius: 9999px;
+    font-size: 12px; font-weight: 700; color: #059669;
+    animation: savedPop .4s cubic-bezier(.34,1.56,.64,1) both;
+}
+.s-saved-badge.show { display: inline-flex; }
+
+/* ---- color scheme picker ---- */
+.s-color-grid {
+    display: flex; gap: 10px; flex-wrap: wrap;
+}
+
+.s-color-swatch {
+    width: 36px; height: 36px; border-radius: 9999px;
+    cursor: pointer; position: relative;
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+    border: 2.5px solid transparent;
+}
+.s-color-swatch:hover { transform: scale(1.18); }
+.s-color-swatch.selected {
+    border-color: #0f172a;
+    box-shadow: 0 0 0 3px rgba(15,23,42,.1);
+}
+.s-color-swatch.selected::after {
+    content: '✓';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 14px; font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+
+/* ---- danger zone ---- */
+.s-danger-zone {
+    background: rgba(254,242,242,.8);
+    border: 1.5px solid rgba(239,68,68,.2);
+    border-radius: 16px; padding: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+    transition: all .25s;
+}
+.s-danger-zone:hover {
+    background: rgba(254,242,242,1);
+    border-color: rgba(239,68,68,.35);
+}
+.s-danger-zone h4 { font-size: 14px; font-weight: 700; color: #dc2626; margin-bottom: 3px; }
+.s-danger-zone p  { font-size: 12px; color: #ef4444; line-height: 1.4; }
+
+/* ---- api key display ---- */
+.s-api-key {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: rgba(15,23,42,.04);
+    border: 1.5px solid rgba(148,163,184,.18);
+    border-radius: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; color: #475569;
+    letter-spacing: .05em;
+    transition: all .2s;
+}
+.s-api-key:hover { background: rgba(248,250,252,.9); border-color: rgba(102,126,234,.3); }
+
+.s-api-key-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- notification item ---- */
+.s-notif-item {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding: 14px 10px; margin: 0 -10px;
+    border-bottom: 1px solid rgba(148,163,184,.1);
+    border-radius: 10px;
+    transition: background .15s;
+    cursor: pointer;
+}
+.s-notif-item:last-child { border-bottom: none; }
+.s-notif-item:hover { background: rgba(248,250,252,.9); }
+
+.s-notif-text h4 { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 3px; }
+.s-notif-text p  { font-size: 12px; color: #64748b; line-height: 1.45; }
+
+/* ---- security badge ---- */
+.s-security-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 11px; font-weight: 700;
+}
+.ssb-green { background:rgba(16,185,129,.1); color:#059669; border:1px solid rgba(16,185,129,.25); }
+.ssb-yellow{ background:rgba(245,158,11,.1); color:#d97706; border:1px solid rgba(245,158,11,.25); }
+.ssb-red   { background:rgba(239,68,68,.1);  color:#dc2626; border:1px solid rgba(239,68,68,.25); }
+
+/* ---- session row ---- */
+.s-session {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; padding: 14px;
+    background: rgba(248,250,252,.7);
+    border: 1px solid rgba(148,163,184,.15);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: all .2s;
+}
+.s-session:hover { border-color: rgba(102,126,234,.3); background: rgba(248,250,252,.95); }
+.s-session:last-child { margin-bottom: 0; }
+
+.s-session-left { display: flex; align-items: center; gap: 12px; }
+.s-session-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.18);
+}
+.s-session-name { font-size: 13px; font-weight: 700; color: #0f172a; }
+.s-session-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+/* ---- plan card ---- */
+.s-plan-card {
+    border-radius: 16px; padding: 22px;
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg,#1e1060,#3b1080,#6b0050);
+    background-size: 300% 300%;
+    animation: borderFlow 10s ease infinite;
+    color: white;
+    margin-bottom: 16px;
+}
+.s-plan-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+.s-plan-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 9999px;
+    font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: white;
+    margin-bottom: 12px; position: relative; z-index: 1;
+}
+.s-plan-name {
+    font-size: 26px; font-weight: 800; letter-spacing: -.03em;
+    position: relative; z-index: 1; margin-bottom: 6px;
+}
+.s-plan-desc {
+    font-size: 13px; color: rgba(255,255,255,.7);
+    position: relative; z-index: 1;
+}
+.s-plan-features {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 16px; position: relative; z-index: 1;
+}
+.s-plan-feature {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; color: rgba(255,255,255,.85);
+}
+.s-plan-feature::before {
+    content: '✓';
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900; flex-shrink: 0;
+}
+
+/* ---- progress bar ---- */
+.s-progress-wrap { margin: 12px 0; }
+.s-progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; font-weight: 600; color: #475569;
+    margin-bottom: 6px;
+}
+.s-progress-track {
+    height: 7px; background: rgba(148,163,184,.2);
+    border-radius: 9999px; overflow: hidden;
+}
+.s-progress-fill {
+    height: 100%; border-radius: 9999px;
+    background: linear-gradient(90deg,#667eea,#a855f7);
+    transform-origin: left;
+    animation: s-barGrow 1.2s cubic-bezier(.4,0,.2,1) .4s both;
+}
+@keyframes s-barGrow { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+
+/* ================================================
+   RESPONSIVE
+   ================================================ */
+@media (max-width: 860px) {
+    .settings-grid { grid-template-columns: 1fr; }
+    .settings-sidenav { position: relative; top: 0; }
+    .settings-page { padding: 0 20px 60px; }
+    .s-form-grid { grid-template-columns: 1fr; }
+    .s-plan-features { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+    .settings-tabs { gap: 2px; }
+    .s-tab { padding: 9px 12px; font-size: 12px; }
+    .s-tab span:not(.s-tab-icon) { display: none; }
+}
+
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ========== NAVBAR ========== -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="/" class="nav-logo" style="text-decoration:none;">
+                <div style="width:36px;height:36px;border-radius:10px;
+                            background:linear-gradient(135deg,#6d28d9,#db2877);
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <polygon points="9,2 16,6 16,12 9,16 2,12 2,6"
+                                 stroke="white" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span style="font-size:18px;font-weight:700;letter-spacing:-0.02em;
+                             background:linear-gradient(90deg,#818cf8,#c084fc,#f472b6);
+                             -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+                             background-clip:text;">RiskPulse</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <a href="/"          class="nav-link">Dashboard</a>
+            <a href="/projects"  class="nav-link">Projects</a>
+            <a href="/analytics" class="nav-link">Analytics</a>
+            <a href="/reports"   class="nav-link">Reports</a>
+        </div>
+        <div class="nav-right">
+            <button class="nav-icon-btn" title="Notifications">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span class="badge"></span>
+            </button>
+            <div class="profile" onclick="toggleDropdown()">
+                <div class="profile-avatar">{{ current_user.username[0].upper() }}</div>
+                <div class="profile-info">
+                    <div class="profile-name">{{ current_user.username }}</div>
+                    <div class="profile-role">Admin</div>
+                </div>
+                <svg class="profile-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                <div class="dropdown" id="profileDropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-user-name">{{ current_user.username }}</div>
+                        <div class="dropdown-user-email">{{ current_user.email }}</div>
+                    </div>
+                    <div class="dropdown-section">
+                        <a href="/profile"  class="dropdown-item">
+                            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            <span>Your Profile</span>
+                        </a>
+                        <a href="/settings" class="dropdown-item">
+                            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6"></path></svg>
+                            <span>Settings</span>
+                        </a>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-section">
+                        <a href="/logout" class="dropdown-item danger">
+                            <svg class="dropdown-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ========== SETTINGS PAGE ========== -->
+    <div class="settings-page">
+
+        <!-- Header -->
+        <div class="settings-header">
+            <div class="page-indicator">
+                <span class="page-indicator-home">🏠</span>
+                <span class="page-indicator-separator">›</span>
+                <span class="page-indicator-current">Settings</span>
+                <span class="page-indicator-dot"></span>
+            </div>
+            <div class="settings-title">Settings</div>
+            <div class="settings-subtitle">Manage your account, preferences, and security</div>
+        </div>
+
+        <!-- Tab bar (mobile) -->
+        <div class="settings-tabs" id="settingsTabs">
+            <button class="s-tab active" onclick="switchTab('profile',this)">
+                <span class="s-tab-icon">👤</span><span>Profile</span>
+            </button>
+            <button class="s-tab" onclick="switchTab('notifications',this)">
+                <span class="s-tab-icon">🔔</span><span>Notifications</span>
+            </button>
+            <button class="s-tab" onclick="switchTab('appearance',this)">
+                <span class="s-tab-icon">🎨</span><span>Appearance</span>
+            </button>
+            <button class="s-tab" onclick="switchTab('security',this)">
+                <span class="s-tab-icon">🔒</span><span>Security</span>
+            </button>
+            <button class="s-tab" onclick="switchTab('billing',this)">
+                <span class="s-tab-icon">💳</span><span>Billing</span>
+            </button>
+            <button class="s-tab" onclick="switchTab('api',this)">
+                <span class="s-tab-icon">⚙️</span><span>API</span>
+            </button>
+        </div>
+
+        <!-- Grid: sidenav + content -->
+        <div class="settings-grid">
+
+            <!-- SIDE NAV (desktop) -->
+            <nav class="settings-sidenav">
+                <div class="sidenav-section-label">Account</div>
+                <a class="sidenav-item active" onclick="switchPanel('profile',this)">
+                    <div class="sidenav-icon si-purple">👤</div> Profile
+                </a>
+                <a class="sidenav-item" onclick="switchPanel('notifications',this)">
+                    <div class="sidenav-icon si-blue">🔔</div> Notifications
+                </a>
+                <a class="sidenav-item" onclick="switchPanel('appearance',this)">
+                    <div class="sidenav-icon si-pink">🎨</div> Appearance
+                </a>
+
+                <div class="sidenav-divider"></div>
+                <div class="sidenav-section-label">System</div>
+
+                <a class="sidenav-item" onclick="switchPanel('security',this)">
+                    <div class="sidenav-icon si-orange">🔒</div> Security
+                </a>
+                <a class="sidenav-item" onclick="switchPanel('billing',this)">
+                    <div class="sidenav-icon si-green">💳</div> Billing
+                </a>
+                <a class="sidenav-item" onclick="switchPanel('api',this)">
+                    <div class="sidenav-icon si-purple">⚙️</div> API & Integrations
+                </a>
+
+                <div class="sidenav-divider"></div>
+                <a class="sidenav-item" href="/logout">
+                    <div class="sidenav-icon si-red">🚪</div> Sign Out
+                </a>
+            </nav>
+
+            <!-- CONTENT PANELS -->
+            <div class="settings-content">
+
+                <!-- ===== PROFILE ===== -->
+                <div class="s-panel active" id="panel-profile">
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-purple">👤</div>
+                                Personal Information
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+
+                            <!-- Avatar -->
+                            <div class="s-avatar-section" onclick="document.getElementById('avatarInput').click()">
+                                <div class="s-avatar-ring">
+                                    <div class="s-avatar-inner">{{ current_user.username[0].upper() }}</div>
+                                </div>
+                                <div class="s-avatar-info">
+                                    <h4>Profile Photo</h4>
+                                    <p>Click to upload a new photo<br>JPG, PNG or GIF · Max 5MB</p>
+                                    <div class="s-avatar-btns">
+                                        <button class="s-btn s-btn-ghost s-btn-sm" type="button">Upload Photo</button>
+                                        <button class="s-btn s-btn-ghost s-btn-sm" type="button" style="color:#ef4444;border-color:rgba(239,68,68,.25)">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="file" id="avatarInput" accept="image/*" style="display:none">
+
+                            <!-- Form -->
+                            <div class="s-form-grid">
+                                <div class="s-field">
+                                    <label class="s-label">First Name</label>
+                                    <input class="s-input" type="text" placeholder="First name" value="{{ current_user.username }}">
+                                </div>
+                                <div class="s-field">
+                                    <label class="s-label">Last Name</label>
+                                    <input class="s-input" type="text" placeholder="Last name">
+                                </div>
+                            </div>
+                            <div class="s-form-grid single">
+                                <div class="s-field">
+                                    <label class="s-label">Email Address</label>
+                                    <input class="s-input" type="email" placeholder="you@example.com" value="{{ current_user.email }}">
+                                </div>
+                            </div>
+                            <div class="s-form-grid">
+                                <div class="s-field">
+                                    <label class="s-label">Role / Title</label>
+                                    <input class="s-input" type="text" placeholder="e.g. Project Manager" value="Risk Analyst">
+                                </div>
+                                <div class="s-field">
+                                    <label class="s-label">Organisation</label>
+                                    <input class="s-input" type="text" placeholder="Company name">
+                                </div>
+                            </div>
+                            <div class="s-form-grid single">
+                                <div class="s-field">
+                                    <label class="s-label">Bio</label>
+                                    <textarea class="s-input" rows="3" placeholder="Tell your team a little about yourself…" style="resize:vertical"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="s-save-row">
+                                <span class="s-saved-badge" id="profileSaved">✔ Saved</span>
+                                <button class="s-btn s-btn-ghost" type="button">Discard</button>
+                                <button class="s-btn s-btn-primary" type="button" onclick="showSaved('profileSaved')">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Danger zone -->
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title" style="color:#dc2626;">
+                                <div class="s-card-title-icon si-red">⚠️</div>
+                                Danger Zone
+                            </div>
+                        </div>
+                        <div class="s-card-body" style="display:flex;flex-direction:column;gap:12px">
+                            <div class="s-danger-zone">
+                                <div>
+                                    <h4>Delete Account</h4>
+                                    <p>Permanently delete your account and all associated data. This cannot be undone.</p>
+                                </div>
+                                <button class="s-btn s-btn-danger" type="button">Delete Account</button>
+                            </div>
+                            <div class="s-danger-zone">
+                                <div>
+                                    <h4>Export All Data</h4>
+                                    <p>Download a full export of your projects, reports and risk data as a ZIP archive.</p>
+                                </div>
+                                <button class="s-btn s-btn-ghost" type="button">Export Data</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== NOTIFICATIONS ===== -->
+                <div class="s-panel" id="panel-notifications">
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-blue">📧</div>
+                                Email Notifications
+                            </div>
+                            <span class="s-card-desc">Delivered to {{ current_user.email }}</span>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Critical Risk Alerts</h4>
+                                        <p>Instant email when any project risk score crosses the critical threshold (≥80)</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Weekly Risk Digest</h4>
+                                        <p>A summary of all project risk changes, new issues flagged, and mitigations closed</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Report Generation</h4>
+                                        <p>Notify me when a report has finished generating and is ready to download</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Team Activity</h4>
+                                        <p>When team members add comments, escalate risks or update project status</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle">
+                                </div>
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Marketing & Product Updates</h4>
+                                        <p>New features, tips and occasional product announcements from RiskPulse</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-purple">🔔</div>
+                                Push & In-App Notifications
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Browser Push Notifications</h4>
+                                        <p>Real-time alerts in your browser even when the tab is in the background</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Risk Score Changes</h4>
+                                        <p>In-app banner when any project score changes by more than 10 points</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-notif-item">
+                                    <div class="s-notif-text">
+                                        <h4>Deadline Reminders</h4>
+                                        <p>48-hour and 24-hour warnings before milestone deadlines</p>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle">
+                                </div>
+                            </div>
+                            <div class="s-save-row">
+                                <span class="s-saved-badge" id="notifSaved">✔ Saved</span>
+                                <button class="s-btn s-btn-primary" type="button" onclick="showSaved('notifSaved')">Save Preferences</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== APPEARANCE ===== -->
+                <div class="s-panel" id="panel-appearance">
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-pink">🌙</div>
+                                Theme
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-purple">🌙</div>
+                                        <div class="s-row-text">
+                                            <h4>Dark Mode</h4>
+                                            <p>Switch to a dark interface that's easier on the eyes at night</p>
+                                        </div>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" id="darkToggle" onchange="toggleDarkMode(this)">
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-blue">✨</div>
+                                        <div class="s-row-text">
+                                            <h4>Reduced Motion</h4>
+                                            <p>Disable decorative animations for a calmer, faster experience</p>
+                                        </div>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle">
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-green">🔤</div>
+                                        <div class="s-row-text">
+                                            <h4>Font Size</h4>
+                                            <p>Adjust the base font size for better readability</p>
+                                        </div>
+                                    </div>
+                                    <select class="s-select">
+                                        <option>Small (13px)</option>
+                                        <option selected>Default (15px)</option>
+                                        <option>Large (17px)</option>
+                                        <option>X-Large (19px)</option>
+                                    </select>
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-orange">🌐</div>
+                                        <div class="s-row-text">
+                                            <h4>Language</h4>
+                                            <p>Choose your preferred display language</p>
+                                        </div>
+                                    </div>
+                                    <select class="s-select">
+                                        <option selected>English (US)</option>
+                                        <option>English (UK)</option>
+                                        <option>Hindi</option>
+                                        <option>French</option>
+                                        <option>German</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-pink">🎨</div>
+                                Accent Colour
+                            </div>
+                            <span class="s-card-desc">Used for buttons, links and highlights</span>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-color-grid">
+                                <div class="s-color-swatch selected" style="background:linear-gradient(135deg,#667eea,#ec4899)" title="Aurora (default)" onclick="selectSwatch(this)"></div>
+                                <div class="s-color-swatch" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)" title="Ocean" onclick="selectSwatch(this)"></div>
+                                <div class="s-color-swatch" style="background:linear-gradient(135deg,#10b981,#06b6d4)" title="Emerald" onclick="selectSwatch(this)"></div>
+                                <div class="s-color-swatch" style="background:linear-gradient(135deg,#f59e0b,#ef4444)" title="Sunset" onclick="selectSwatch(this)"></div>
+                                <div class="s-color-swatch" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6)" title="Violet" onclick="selectSwatch(this)"></div>
+                                <div class="s-color-swatch" style="background:linear-gradient(135deg,#ec4899,#f43f5e)" title="Rose" onclick="selectSwatch(this)"></div>
+                                <div class="s-color-swatch" style="background:linear-gradient(135deg,#475569,#1e293b)" title="Slate" onclick="selectSwatch(this)"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== SECURITY ===== -->
+                <div class="s-panel" id="panel-security">
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-orange">🔑</div>
+                                Password
+                            </div>
+                            <span class="s-security-badge ssb-green">● Strong</span>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-form-grid single">
+                                <div class="s-field">
+                                    <label class="s-label">Current Password</label>
+                                    <input class="s-input" type="password" placeholder="Enter current password">
+                                </div>
+                            </div>
+                            <div class="s-form-grid">
+                                <div class="s-field">
+                                    <label class="s-label">New Password</label>
+                                    <input class="s-input" type="password" placeholder="Min 8 characters" id="newPwd" oninput="checkStrength(this.value)">
+                                </div>
+                                <div class="s-field">
+                                    <label class="s-label">Confirm Password</label>
+                                    <input class="s-input" type="password" placeholder="Repeat new password">
+                                </div>
+                            </div>
+                            <!-- Strength bar -->
+                            <div class="s-progress-wrap" id="strengthWrap" style="display:none">
+                                <div class="s-progress-label">
+                                    <span>Password strength</span>
+                                    <span id="strengthLabel">—</span>
+                                </div>
+                                <div class="s-progress-track">
+                                    <div class="s-progress-fill" id="strengthBar" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div class="s-save-row">
+                                <span class="s-saved-badge" id="pwdSaved">✔ Password Updated</span>
+                                <button class="s-btn s-btn-primary" onclick="showSaved('pwdSaved')">Update Password</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-purple">🛡️</div>
+                                Two-Factor Authentication
+                            </div>
+                            <span class="s-security-badge ssb-yellow">● Disabled</span>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-blue">📱</div>
+                                        <div class="s-row-text">
+                                            <h4>Authenticator App</h4>
+                                            <p>Use Google Authenticator, Authy or any TOTP app for secure 2FA</p>
+                                        </div>
+                                    </div>
+                                    <button class="s-btn s-btn-ghost s-btn-sm">Enable</button>
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-green">💬</div>
+                                        <div class="s-row-text">
+                                            <h4>SMS Authentication</h4>
+                                            <p>Receive a one-time code by text message when signing in</p>
+                                        </div>
+                                    </div>
+                                    <button class="s-btn s-btn-ghost s-btn-sm">Set Up</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-blue">💻</div>
+                                Active Sessions
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-session">
+                                <div class="s-session-left">
+                                    <div class="s-session-icon">🖥️</div>
+                                    <div>
+                                        <div class="s-session-name">Chrome on Windows</div>
+                                        <div class="s-session-meta">New Delhi, India · <span style="color:#10b981;font-weight:700">Current session</span></div>
+                                    </div>
+                                </div>
+                                <span class="s-security-badge ssb-green">Active</span>
+                            </div>
+                            <div class="s-session">
+                                <div class="s-session-left">
+                                    <div class="s-session-icon">📱</div>
+                                    <div>
+                                        <div class="s-session-name">Safari on iPhone</div>
+                                        <div class="s-session-meta">Mumbai, India · 2 days ago</div>
+                                    </div>
+                                </div>
+                                <button class="s-btn s-btn-danger s-btn-sm">Revoke</button>
+                            </div>
+                            <div class="s-session">
+                                <div class="s-session-left">
+                                    <div class="s-session-icon">💻</div>
+                                    <div>
+                                        <div class="s-session-name">Firefox on macOS</div>
+                                        <div class="s-session-meta">Bangalore, India · 5 days ago</div>
+                                    </div>
+                                </div>
+                                <button class="s-btn s-btn-danger s-btn-sm">Revoke</button>
+                            </div>
+                            <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(148,163,184,.12)">
+                                <button class="s-btn s-btn-danger" type="button">Revoke All Other Sessions</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== BILLING ===== -->
+                <div class="s-panel" id="panel-billing">
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-green">💳</div>
+                                Current Plan
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-plan-card">
+                                <div class="s-plan-badge">✦ Pro Plan</div>
+                                <div class="s-plan-name">$29 / month</div>
+                                <div class="s-plan-desc">Renews on July 15, 2025 · billed monthly</div>
+                                <div class="s-plan-features">
+                                    <div class="s-plan-feature">Unlimited Projects</div>
+                                    <div class="s-plan-feature">ML Risk Scoring</div>
+                                    <div class="s-plan-feature">Advanced Analytics</div>
+                                    <div class="s-plan-feature">API Access</div>
+                                    <div class="s-plan-feature">Priority Support</div>
+                                    <div class="s-plan-feature">Custom Reports</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                                <button class="s-btn s-btn-primary">Upgrade to Enterprise</button>
+                                <button class="s-btn s-btn-ghost">Manage Subscription</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-blue">📊</div>
+                                Usage This Month
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-progress-wrap">
+                                <div class="s-progress-label"><span>Projects (18 / 25)</span><span>72%</span></div>
+                                <div class="s-progress-track"><div class="s-progress-fill" style="width:72%"></div></div>
+                            </div>
+                            <div class="s-progress-wrap">
+                                <div class="s-progress-label"><span>API Calls (8,420 / 10,000)</span><span>84%</span></div>
+                                <div class="s-progress-track"><div class="s-progress-fill" style="width:84%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div></div>
+                            </div>
+                            <div class="s-progress-wrap">
+                                <div class="s-progress-label"><span>Report Exports (6 / 50)</span><span>12%</span></div>
+                                <div class="s-progress-track"><div class="s-progress-fill" style="width:12%;background:linear-gradient(90deg,#10b981,#06b6d4)"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-purple">🧾</div>
+                                Billing History
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-row" style="cursor:default">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-green">✅</div>
+                                        <div class="s-row-text"><h4>June 15, 2025 — Pro Plan</h4><p>Invoice #INV-2025-006</p></div>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <span style="font-size:14px;font-weight:700;color:#0f172a">$29.00</span>
+                                        <button class="s-btn s-btn-ghost s-btn-sm">PDF</button>
+                                    </div>
+                                </div>
+                                <div class="s-row" style="cursor:default">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-green">✅</div>
+                                        <div class="s-row-text"><h4>May 15, 2025 — Pro Plan</h4><p>Invoice #INV-2025-005</p></div>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <span style="font-size:14px;font-weight:700;color:#0f172a">$29.00</span>
+                                        <button class="s-btn s-btn-ghost s-btn-sm">PDF</button>
+                                    </div>
+                                </div>
+                                <div class="s-row" style="cursor:default">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-green">✅</div>
+                                        <div class="s-row-text"><h4>April 15, 2025 — Pro Plan</h4><p>Invoice #INV-2025-004</p></div>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <span style="font-size:14px;font-weight:700;color:#0f172a">$29.00</span>
+                                        <button class="s-btn s-btn-ghost s-btn-sm">PDF</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== API ===== -->
+                <div class="s-panel" id="panel-api">
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-purple">🔑</div>
+                                API Keys
+                            </div>
+                            <button class="s-btn s-btn-primary s-btn-sm" onclick="generateKey()">+ Generate New Key</button>
+                        </div>
+                        <div class="s-card-body">
+                            <p style="font-size:13px;color:#64748b;margin-bottom:16px;line-height:1.6">
+                                Use these keys to authenticate requests to the RiskPulse API.
+                                Keep them secret — treat them like passwords.
+                            </p>
+                            <div style="display:flex;flex-direction:column;gap:10px" id="apiKeyList">
+                                <div class="s-api-key">
+                                    <div style="font-size:12px;font-weight:700;color:#6366f1;min-width:70px">Production</div>
+                                    <div class="s-api-key-val">rp_live_••••••••••••••••••••••••••••••••</div>
+                                    <button class="s-btn s-btn-ghost s-btn-sm" onclick="copyKey(this,'rp_live_sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')">Copy</button>
+                                    <button class="s-btn s-btn-danger s-btn-sm">Revoke</button>
+                                </div>
+                                <div class="s-api-key">
+                                    <div style="font-size:12px;font-weight:700;color:#10b981;min-width:70px">Sandbox</div>
+                                    <div class="s-api-key-val">rp_test_••••••••••••••••••••••••••••••••</div>
+                                    <button class="s-btn s-btn-ghost s-btn-sm" onclick="copyKey(this,'rp_test_sk_yyyyyyyyyyyyyyyyyyyyyyyyyyyy')">Copy</button>
+                                    <button class="s-btn s-btn-danger s-btn-sm">Revoke</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-blue">🔗</div>
+                                Webhooks
+                            </div>
+                            <button class="s-btn s-btn-ghost s-btn-sm">+ Add Endpoint</button>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon si-green">✅</div>
+                                        <div class="s-row-text">
+                                            <h4>https://yourapp.io/hooks/risk</h4>
+                                            <p>risk.score.changed · risk.critical · report.generated</p>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;gap:8px">
+                                        <span class="s-security-badge ssb-green">Active</span>
+                                        <button class="s-btn s-btn-danger s-btn-sm">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="s-card">
+                        <div class="s-card-head">
+                            <div class="s-card-title">
+                                <div class="s-card-title-icon si-orange">🔌</div>
+                                Integrations
+                            </div>
+                        </div>
+                        <div class="s-card-body">
+                            <div class="s-rows">
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon" style="background:rgba(36,104,255,.1);border:1px solid rgba(36,104,255,.2)">🗂️</div>
+                                        <div class="s-row-text"><h4>Jira</h4><p>Sync project milestones and risk flags with Jira issues</p></div>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon" style="background:rgba(74,21,75,.1);border:1px solid rgba(74,21,75,.2)">💬</div>
+                                        <div class="s-row-text"><h4>Slack</h4><p>Post critical risk alerts and weekly digests to a Slack channel</p></div>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle" checked>
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon" style="background:rgba(0,120,212,.1);border:1px solid rgba(0,120,212,.2)">📊</div>
+                                        <div class="s-row-text"><h4>Microsoft Teams</h4><p>Send risk notifications directly to your Teams workspace</p></div>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle">
+                                </div>
+                                <div class="s-row">
+                                    <div class="s-row-left">
+                                        <div class="s-row-icon" style="background:rgba(15,157,88,.1);border:1px solid rgba(15,157,88,.2)">📋</div>
+                                        <div class="s-row-text"><h4>Google Sheets</h4><p>Auto-export project risk data to a Google Sheet on a schedule</p></div>
+                                    </div>
+                                    <input type="checkbox" class="s-toggle">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div><!-- /settings-content -->
+        </div><!-- /settings-grid -->
+    </div><!-- /settings-page -->
+
+    <footer>
+        Built by <span>Gurkirat Singh</span> &nbsp;|&nbsp; Real-Time Project Risk & Delay Prediction System
+    </footer>
+
+</div><!-- /container -->
+
+<script>
+/* ---- dropdown ---- */
+function toggleDropdown(){
+    document.getElementById('profileDropdown').classList.toggle('show');
+}
+document.addEventListener('click',function(e){
+    const p=document.querySelector('.profile');
+    if(p&&!p.contains(e.target)) document.getElementById('profileDropdown').classList.remove('show');
+});
+
+/* ---- panel switching (sidenav + tabs stay in sync) ---- */
+function switchPanel(name, el){
+    document.querySelectorAll('.s-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.sidenav-item').forEach(i=>i.classList.remove('active'));
+    document.querySelectorAll('.s-tab').forEach(t=>t.classList.remove('active'));
+
+    document.getElementById('panel-'+name).classList.add('active');
+    if(el) el.classList.add('active');
+
+    // sync tab bar
+    document.querySelectorAll('.s-tab').forEach(t=>{
+        if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes("'"+name+"'")){
+            t.classList.add('active');
+        }
+    });
+}
+
+function switchTab(name, el){
+    switchPanel(name, null);
+    document.querySelectorAll('.s-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    // sync sidenav
+    document.querySelectorAll('.sidenav-item').forEach(i=>{
+        if(i.getAttribute('onclick')&&i.getAttribute('onclick').includes("'"+name+"'")){
+            i.classList.add('active');
+        }
+    });
+}
+
+/* ---- saved badge ---- */
+function showSaved(id){
+    const el=document.getElementById(id);
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+/* ---- colour swatch ---- */
+function selectSwatch(el){
+    document.querySelectorAll('.s-color-swatch').forEach(s=>s.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+/* ---- password strength ---- */
+function checkStrength(v){
+    const wrap=document.getElementById('strengthWrap');
+    const bar=document.getElementById('strengthBar');
+    const lbl=document.getElementById('strengthLabel');
+    if(!v){wrap.style.display='none';return;}
+    wrap.style.display='block';
+    let score=0;
+    if(v.length>=8)score++;
+    if(/[A-Z]/.test(v))score++;
+    if(/[0-9]/.test(v))score++;
+    if(/[^A-Za-z0-9]/.test(v))score++;
+    const map=[
+        {w:'25%',c:'linear-gradient(90deg,#ef4444,#f97316)',l:'Weak'},
+        {w:'50%',c:'linear-gradient(90deg,#f59e0b,#eab308)',l:'Fair'},
+        {w:'75%',c:'linear-gradient(90deg,#3b82f6,#6366f1)',l:'Good'},
+        {w:'100%',c:'linear-gradient(90deg,#10b981,#06b6d4)',l:'Strong'},
+    ];
+    const m=map[score-1]||map[0];
+    bar.style.width=m.w;
+    bar.style.background=m.c;
+    lbl.textContent=m.l;
+}
+
+/* ---- copy API key ---- */
+function copyKey(btn,key){
+    navigator.clipboard.writeText(key).catch(()=>{});
+    const orig=btn.textContent;
+    btn.textContent='Copied!';
+    btn.style.color='#10b981';
+    setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);
+}
+
+/* ---- generate new key ---- */
+function generateKey(){
+    const chars='abcdefghijklmnopqrstuvwxyz0123456789';
+    let k='rp_live_'+Array.from({length:32},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+    const list=document.getElementById('apiKeyList');
+    const div=document.createElement('div');
+    div.className='s-api-key';
+    div.style.animation='popIn .4s cubic-bezier(.34,1.56,.64,1) both';
+    div.innerHTML=`
+        <div style="font-size:12px;font-weight:700;color:#6366f1;min-width:70px">New Key</div>
+        <div class="s-api-key-val">${k}</div>
+        <button class="s-btn s-btn-ghost s-btn-sm" onclick="copyKey(this,'${k}')">Copy</button>
+        <button class="s-btn s-btn-danger s-btn-sm" onclick="this.closest('.s-api-key').remove()">Revoke</button>`;
+    list.prepend(div);
+}
+
+/* ---- dark mode stub ---- */
+function toggleDarkMode(el){
+    document.body.classList.toggle('dark-theme', el.checked);
+}
+</script>
+
+</body>
+</html>

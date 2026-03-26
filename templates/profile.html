@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | RiskPulse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap" rel="stylesheet">
+    <style>
+
+/* =============================================
+   HARD RESET — isolate profile page completely
+   from any global dark-theme styles
+   ============================================= */
+.profile-page,
+.profile-page * {
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Override any global body dark background */
+body.profile-body,
+.profile-page {
+    background: #F1F5F9 !important;
+    color: #0F172A !important;
+    min-height: 100vh;
+}
+
+/* =============================================
+   DESIGN TOKENS
+   ============================================= */
+.profile-page {
+    --white:   #FFFFFF;
+    --bg:      #F1F5F9;
+    --surface: rgba(255,255,255,0.85);
+    --border:  rgba(148,163,184,0.18);
+    --border2: rgba(148,163,184,0.32);
+
+    --text-1:  #0F172A;
+    --text-2:  #475569;
+    --text-3:  #94A3B8;
+
+    /* Aurora */
+    --a1: #667EEA;
+    --a2: #A855F7;
+    --a3: #EC4899;
+    --aurora: linear-gradient(135deg, #667EEA, #A855F7, #EC4899);
+    --aurora-anim: linear-gradient(270deg, #667EEA, #764BA2, #A855F7, #EC4899, #764BA2, #667EEA);
+
+    /* Risk */
+    --critical: #EF4444;
+    --high:     #F59E0B;
+    --medium:   #6366F1;
+    --low:      #10B981;
+
+    /* Shadows */
+    --sh-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --sh-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    --sh-lg: 0 12px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.05);
+    --sh-xl: 0 24px 60px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
+
+    /* Radii */
+    --r-sm:   8px;
+    --r-md:   14px;
+    --r-lg:   18px;
+    --r-xl:   24px;
+    --r-full: 9999px;
+
+    /* Transitions */
+    --t-fast:   0.15s cubic-bezier(0.4,0,0.2,1);
+    --t-base:   0.3s  cubic-bezier(0.4,0,0.2,1);
+    --t-slow:   0.5s  cubic-bezier(0.4,0,0.2,1);
+    --t-spring: 0.6s  cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+@keyframes pr-aurora  { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes pr-up      { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pr-pop     { 0%{opacity:0;transform:scale(0.6)} 70%{transform:scale(1.07)} 100%{opacity:1;transform:scale(1)} }
+@keyframes pr-statup  { from{opacity:0;transform:scale(0.5) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes pr-online  { 0%{box-shadow:0 0 0 0 rgba(16,185,129,.55)} 70%{box-shadow:0 0 0 8px rgba(16,185,129,0)} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0)} }
+@keyframes pr-float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes pr-barflow { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+@keyframes pr-dotline { from{height:0;opacity:0} to{height:100%;opacity:1} }
+@keyframes pr-dotpop  { 0%{transform:scale(0)} 70%{transform:scale(1.3)} 100%{transform:scale(1)} }
+@keyframes pr-sweep   { from{transform:translateX(-100%) skewX(-20deg)} to{transform:translateX(200%) skewX(-20deg)} }
+@keyframes pr-border  { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+@keyframes pr-textflow{ 0%{background-position:0% center} 100%{background-position:-200% center} }
+@keyframes pr-mesh    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes pr-badgeglow { 0%,100%{box-shadow:0 4px 12px rgba(102,126,234,.15)} 50%{box-shadow:0 6px 20px rgba(102,126,234,.28)} }
+
+/* =============================================
+   PAGE SHELL
+   ============================================= */
+.profile-page {
+    padding: 40px 48px 80px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Animated mesh background blobs */
+.profile-page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(at 15% 20%, rgba(102,126,234,.13) 0, transparent 55%),
+        radial-gradient(at 85% 10%, rgba(236,72,153,.10) 0, transparent 50%),
+        radial-gradient(at 5%  80%, rgba(59,130,246,.09)  0, transparent 50%),
+        radial-gradient(at 90% 75%, rgba(139,92,246,.11)  0, transparent 50%);
+    animation: pr-mesh 18s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.profile-page > * { position: relative; z-index: 1; }
+
+/* =============================================
+   TOP BREADCRUMB BAR
+   ============================================= */
+.pr-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    animation: pr-up .6s cubic-bezier(.4,0,.2,1) both;
+}
+
+.pr-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pr-brand-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    background: var(--aurora-anim);
+    background-size: 300% 300%;
+    animation: pr-aurora 4s ease infinite;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: white;
+    box-shadow: 0 4px 14px rgba(102,126,234,.4);
+}
+
+.pr-brand-name {
+    font-size: 18px; font-weight: 800; letter-spacing: -.03em;
+    background: linear-gradient(90deg,#667EEA,#A855F7,#EC4899,#667EEA);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: pr-textflow 5s linear infinite;
+}
+
+.pr-crumb {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    padding: 8px 18px;
+    font-size: 13px; color: var(--text-2);
+    box-shadow: var(--sh-sm);
+    backdrop-filter: blur(12px);
+}
+.pr-crumb-sep   { color: var(--text-3); }
+.pr-crumb-cur   { color: var(--text-1); font-weight: 700; }
+
+.pr-topbar-right { display: flex; gap: 10px; align-items: center; }
+
+.pr-btn-ghost {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 18px;
+    border-radius: var(--r-full);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 1.5px solid var(--border2);
+    background: rgba(255,255,255,.8);
+    color: var(--text-2);
+    transition: all var(--t-fast);
+    backdrop-filter: blur(8px);
+}
+.pr-btn-ghost:hover { background: white; color: var(--text-1); border-color: rgba(102,126,234,.4); }
+
+.pr-btn-aurora {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 20px;
+    border-radius: var(--r-full);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer; border: none;
+    background: var(--aurora-anim);
+    background-size: 300% 300%;
+    animation: pr-aurora 4s ease infinite;
+    color: white;
+    box-shadow: 0 4px 16px rgba(102,126,234,.38);
+    transition: all var(--t-base);
+    position: relative; overflow: hidden;
+}
+.pr-btn-aurora:hover { box-shadow: 0 6px 24px rgba(102,126,234,.55); transform: translateY(-1px); }
+
+/* =============================================
+   PROFILE GRID LAYOUT
+   ============================================= */
+.pr-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+/* =============================================
+   CARD BASE
+   ============================================= */
+.pr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    box-shadow: var(--sh-md);
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: box-shadow var(--t-slow), transform var(--t-slow), border-color var(--t-base);
+}
+.pr-card:hover {
+    box-shadow: var(--sh-xl), 0 0 40px rgba(102,126,234,.1);
+    transform: translateY(-3px);
+    border-color: rgba(102,126,234,.25);
+}
+
+.pr-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.pr-card-title {
+    font-size: 14px; font-weight: 700; letter-spacing: -.01em;
+    color: var(--text-1);
+    display: flex; align-items: center; gap: 10px;
+}
+
+.pr-card-title-icon {
+    width: 28px; height: 28px;
+    border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.pct-blue   { background: rgba(59,130,246,.1);  border:1px solid rgba(59,130,246,.2); }
+.pct-purple { background: rgba(139,92,246,.1);  border:1px solid rgba(139,92,246,.2); }
+.pct-pink   { background: rgba(236,72,153,.1);  border:1px solid rgba(236,72,153,.2); }
+.pct-orange { background: rgba(245,158,11,.1);  border:1px solid rgba(245,158,11,.2); }
+
+.pr-card-body { padding: 20px 24px; }
+
+.pr-meta-tag {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-3); letter-spacing: .04em;
+}
+
+/* =============================================
+   SIDEBAR
+   ============================================= */
+.pr-sidebar {
+    position: sticky; top: 24px;
+    animation: pr-up .8s cubic-bezier(.4,0,.2,1) .1s both;
+}
+
+/* Hero banner */
+.pr-hero {
+    position: relative; height: 120px; overflow: hidden;
+}
+
+.pr-hero-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg,#1a1060,#3b1080,#6b0050,#1a1060);
+    background-size: 300% 300%;
+    animation: pr-mesh 10s ease infinite;
+}
+
+.pr-hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.pr-hero-fade {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 55%;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,.9));
+}
+
+/* Avatar */
+.pr-avatar-wrap {
+    position: absolute;
+    bottom: -34px; left: 50%; transform: translateX(-50%);
+    z-index: 3;
+}
+
+.pr-avatar-ring {
+    width: 88px; height: 88px;
+    border-radius: 50%; padding: 3px;
+    background: var(--aurora-anim);
+    background-size: 300% 300%;
+    animation: pr-aurora 4s ease infinite;
+    box-shadow: 0 8px 28px rgba(102,126,234,.35);
+}
+
+.pr-avatar-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f0f0ff, #ede9fe);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 900;
+    color: #6366f1;
+    border: 3px solid white;
+    animation: pr-pop .8s cubic-bezier(.34,1.56,.64,1) .3s both;
+    cursor: pointer;
+    transition: transform var(--t-spring);
+}
+.pr-avatar-ring:hover .pr-avatar-inner { transform: scale(1.07); }
+
+.pr-online-dot {
+    position: absolute; bottom: 3px; right: 3px;
+    width: 16px; height: 16px;
+    background: #10B981;
+    border: 3px solid white;
+    border-radius: 50%; z-index: 4;
+    animation: pr-online 2s ease-out infinite;
+}
+
+/* Identity */
+.pr-identity {
+    padding: 46px 22px 0;
+    text-align: center;
+}
+
+.pr-name {
+    font-size: 22px; font-weight: 800; letter-spacing: -.03em;
+    background: linear-gradient(135deg,#1e1b4b,#4c1d95,#831843);
+    background-size: 200% 200%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: pr-aurora 6s ease infinite;
+    margin-bottom: 8px;
+}
+
+.pr-role-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg,rgba(99,102,241,.1),rgba(168,85,247,.1));
+    border: 1.5px solid rgba(99,102,241,.2);
+    font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    color: #6366f1;
+}
+
+.pr-role-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: linear-gradient(135deg,#667EEA,#a855f7);
+    box-shadow: 0 0 6px rgba(102,126,234,.6);
+}
+
+/* Stats */
+.pr-stats {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(248,250,252,.7);
+}
+
+.pr-stat {
+    padding: 16px 8px; text-align: center;
+    cursor: pointer; position: relative;
+    transition: background var(--t-fast);
+}
+.pr-stat:not(:last-child)::after {
+    content:''; position:absolute; right:0; top:20%; bottom:20%;
+    width:1px; background:var(--border);
+}
+.pr-stat:hover { background: rgba(102,126,234,.05); }
+.pr-stat:hover .pr-stat-val { transform: scale(1.1) translateY(-2px); }
+
+.pr-stat-val {
+    display: block; font-size: 22px; font-weight: 900; letter-spacing: -.03em;
+    background: linear-gradient(135deg,#667EEA,#764BA2);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: pr-statup .7s cubic-bezier(.34,1.56,.64,1) both;
+    transition: transform var(--t-spring);
+}
+.pr-stat:nth-child(2) .pr-stat-val { animation-delay:.1s; }
+.pr-stat:nth-child(3) .pr-stat-val { animation-delay:.2s; }
+
+.pr-stat-lbl {
+    display: block; margin-top: 2px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-3);
+}
+
+/* Info list */
+.pr-info-list {
+    padding: 16px 18px 4px;
+    display: flex; flex-direction: column; gap: 3px;
+}
+
+.pr-info-row {
+    display: flex; align-items: center; gap: 11px;
+    padding: 9px 11px; border-radius: var(--r-md);
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: all var(--t-fast);
+    animation: pr-up .5s cubic-bezier(.4,0,.2,1) both;
+}
+.pr-info-row:nth-child(1){animation-delay:.2s}
+.pr-info-row:nth-child(2){animation-delay:.28s}
+.pr-info-row:nth-child(3){animation-delay:.36s}
+.pr-info-row:nth-child(4){animation-delay:.44s}
+
+.pr-info-row::before {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(90deg,transparent,rgba(102,126,234,.07),transparent);
+    transform: translateX(-100%); transition: transform .5s;
+}
+.pr-info-row:hover::before { transform: translateX(100%); }
+.pr-info-row:hover { background: rgba(248,250,252,.9); transform: translateX(4px); }
+
+.pr-info-icon {
+    width: 34px; height: 34px; border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    background: white; border: 1.5px solid var(--border);
+    box-shadow: var(--sh-sm); flex-shrink: 0;
+    transition: transform var(--t-spring);
+}
+.pr-info-row:hover .pr-info-icon { transform: scale(1.12) rotate(-5deg); }
+
+.pr-info-lbl {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--text-3); margin-bottom: 2px;
+}
+.pr-info-val {
+    font-size: 13px; font-weight: 600; color: var(--text-1);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Action buttons */
+.pr-actions {
+    padding: 14px 18px 22px;
+    display: flex; flex-direction: column; gap: 10px;
+}
+
+.pr-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 13px 20px;
+    border-radius: var(--r-lg);
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: none;
+    transition: all var(--t-spring);
+    position: relative; overflow: hidden;
+}
+.pr-btn:active { transform: scale(.97); }
+
+.pr-btn-primary {
+    background: var(--aurora-anim);
+    background-size: 300% 300%;
+    animation: pr-aurora 4s ease infinite;
+    color: white;
+    box-shadow: 0 6px 20px rgba(102,126,234,.38);
+}
+.pr-btn-primary::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(to bottom,rgba(255,255,255,.12),transparent);
+    pointer-events:none;
+}
+.pr-btn-primary:hover { box-shadow: 0 10px 28px rgba(102,126,234,.5); transform: translateY(-2px); }
+
+.pr-btn-secondary {
+    background: transparent; color: #6366f1;
+    border: 1.5px solid rgba(99,102,241,.3);
+}
+.pr-btn-secondary::before {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(135deg,rgba(99,102,241,.07),rgba(168,85,247,.07));
+    opacity:0; transition: opacity var(--t-base);
+}
+.pr-btn-secondary:hover::before { opacity:1; }
+.pr-btn-secondary:hover { border-color: rgba(99,102,241,.55); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(99,102,241,.14); }
+
+/* =============================================
+   RIGHT COLUMN
+   ============================================= */
+.pr-content {
+    display: flex; flex-direction: column; gap: 22px;
+}
+.pr-content > *:nth-child(1){animation: pr-up .7s cubic-bezier(.4,0,.2,1) .15s both}
+.pr-content > *:nth-child(2){animation: pr-up .7s cubic-bezier(.4,0,.2,1) .25s both}
+.pr-content > *:nth-child(3){animation: pr-up .7s cubic-bezier(.4,0,.2,1) .35s both}
+
+/* =============================================
+   RISK OVERVIEW STRIP
+   ============================================= */
+.pr-risk-strip {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    border-bottom: 1px solid var(--border);
+    background: rgba(248,250,252,.5);
+}
+
+.pr-rsc {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 20px; cursor: pointer; position: relative;
+    transition: background var(--t-fast);
+    animation: pr-up .6s cubic-bezier(.4,0,.2,1) both;
+}
+.pr-rsc:nth-child(1){animation-delay:.1s}
+.pr-rsc:nth-child(2){animation-delay:.17s}
+.pr-rsc:nth-child(3){animation-delay:.24s}
+.pr-rsc:nth-child(4){animation-delay:.31s}
+.pr-rsc:not(:last-child)::after {
+    content:''; position:absolute; right:0; top:20%; bottom:20%;
+    width:1px; background:var(--border);
+}
+.pr-rsc:hover { background: rgba(255,255,255,.8); }
+
+.pr-rsc-icon {
+    width: 42px; height: 42px; border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+    transition: transform var(--t-spring);
+}
+.pr-rsc:hover .pr-rsc-icon { transform: scale(1.1) rotate(-5deg); }
+
+.rsi-c { background:rgba(239,68,68,.1);  border:1.5px solid rgba(239,68,68,.2); }
+.rsi-h { background:rgba(245,158,11,.1); border:1.5px solid rgba(245,158,11,.2); }
+.rsi-m { background:rgba(99,102,241,.1); border:1.5px solid rgba(99,102,241,.2); }
+.rsi-l { background:rgba(16,185,129,.1); border:1.5px solid rgba(16,185,129,.2); }
+
+.pr-rsc-num {
+    font-size: 30px; font-weight: 900; letter-spacing: -.04em; line-height: 1;
+    animation: pr-statup .7s cubic-bezier(.34,1.56,.64,1) both;
+}
+.rn-c { color:#EF4444; }
+.rn-h { color:#F59E0B; }
+.rn-m { color:#6366F1; }
+.rn-l { color:#10B981; }
+
+.pr-rsc-lbl {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-3); margin-top: 2px;
+}
+
+/* =============================================
+   SECTION SUB-LABEL
+   ============================================= */
+.pr-sub-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-3);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+}
+.pr-sub-label::after {
+    content:''; flex:1; height:1px;
+    background: linear-gradient(90deg, rgba(148,163,184,.3), transparent);
+}
+
+/* =============================================
+   TIMELINE
+   ============================================= */
+.pr-timeline {
+    position: relative; padding-left: 8px;
+}
+.pr-timeline::before {
+    content:''; position:absolute; left:18px; top:8px; bottom:8px;
+    width:2px;
+    background: linear-gradient(to bottom,#667EEA,#A855F7,#EC4899);
+    border-radius: 9999px; opacity:.25;
+    animation: pr-dotline 1s ease-out .3s both;
+}
+
+.pr-titem {
+    position: relative; display: flex; gap: 14px;
+    padding-bottom: 20px;
+    animation: pr-up .5s cubic-bezier(.4,0,.2,1) both;
+}
+.pr-titem:last-child { padding-bottom: 0; }
+.pr-titem:nth-child(1){animation-delay:.2s}
+.pr-titem:nth-child(2){animation-delay:.3s}
+.pr-titem:nth-child(3){animation-delay:.4s}
+.pr-titem:nth-child(4){animation-delay:.5s}
+
+.pr-tdot {
+    position:absolute; left:10px; top:4px;
+    width:16px; height:16px; border-radius:50%;
+    border:2.5px solid white; z-index:2;
+    animation: pr-dotpop .5s cubic-bezier(.34,1.56,.64,1) both;
+    transition: transform var(--t-spring);
+    box-shadow: var(--sh-sm);
+}
+.pr-titem:nth-child(1) .pr-tdot { background:linear-gradient(135deg,#667EEA,#6366f1); box-shadow:0 0 8px rgba(102,126,234,.5); animation-delay:.25s; }
+.pr-titem:nth-child(2) .pr-tdot { background:linear-gradient(135deg,#764BA2,#A855F7); box-shadow:0 0 8px rgba(168,85,247,.5); animation-delay:.35s; }
+.pr-titem:nth-child(3) .pr-tdot { background:linear-gradient(135deg,#EC4899,#f43f5e); box-shadow:0 0 8px rgba(236,72,153,.5); animation-delay:.45s; }
+.pr-titem:nth-child(4) .pr-tdot { background:linear-gradient(135deg,#A855F7,#764BA2); box-shadow:0 0 8px rgba(168,85,247,.5); animation-delay:.55s; }
+.pr-titem:hover .pr-tdot { transform:scale(1.4); }
+
+.pr-tcontent {
+    flex:1; margin-left:24px;
+    background: rgba(255,255,255,.75);
+    border:1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 13px 16px;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: all var(--t-slow);
+    box-shadow: var(--sh-sm);
+}
+.pr-tcontent::before {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(90deg,transparent,rgba(102,126,234,.06),transparent);
+    transform: translateX(-100%); transition: transform .6s;
+}
+.pr-titem:hover .pr-tcontent::before { transform: translateX(100%); }
+.pr-titem:hover .pr-tcontent {
+    background: white; border-color: rgba(102,126,234,.28);
+    transform: translateX(6px); box-shadow: var(--sh-md);
+}
+
+.pr-ttitle {
+    font-size: 14px; font-weight: 700; color: var(--text-1);
+    margin-bottom: 3px; letter-spacing: -.01em;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
+.pr-tdesc  { font-size: 13px; color: var(--text-2); line-height:1.5; }
+.pr-ttime  { display:inline-block; margin-top:6px; font-size:11px; color:var(--text-3); font-weight:600; }
+
+/* Risk score badges */
+.pr-rbadge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 10px; border-radius:var(--r-full);
+    font-size:11px; font-weight:700; letter-spacing:.3px;
+}
+.prb-c { background:rgba(239,68,68,.1);  color:#EF4444; border:1px solid rgba(239,68,68,.2); }
+.prb-h { background:rgba(245,158,11,.1); color:#D97706; border:1px solid rgba(245,158,11,.2); }
+.prb-m { background:rgba(99,102,241,.1); color:#6366F1; border:1px solid rgba(99,102,241,.2); }
+.prb-l { background:rgba(16,185,129,.1); color:#059669; border:1px solid rgba(16,185,129,.2); }
+
+/* =============================================
+   SETTINGS GRID
+   ============================================= */
+.pr-settings-grid {
+    display: grid; grid-template-columns: repeat(2,1fr); gap: 16px;
+}
+
+.pr-setting-card {
+    background: rgba(255,255,255,.85);
+    border:1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: 20px 22px;
+    display: flex; flex-direction: column; gap: 10px;
+    cursor: pointer; position: relative; overflow: hidden;
+    box-shadow: var(--sh-sm);
+    transition: all var(--t-slow);
+    animation: pr-up .6s cubic-bezier(.4,0,.2,1) both;
+    backdrop-filter: blur(16px);
+}
+.pr-setting-card:nth-child(1){animation-delay:.2s}
+.pr-setting-card:nth-child(2){animation-delay:.28s}
+.pr-setting-card:nth-child(3){animation-delay:.36s}
+.pr-setting-card:nth-child(4){animation-delay:.44s}
+
+/* Aurora top border */
+.pr-setting-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg,#667EEA,#A855F7,#EC4899,#667EEA);
+    background-size: 300% 100%;
+    animation: pr-border 4s linear infinite;
+    opacity:0; transition:opacity var(--t-base);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+}
+.pr-setting-card:hover::before { opacity:1; }
+.pr-setting-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: var(--sh-xl), 0 0 28px rgba(102,126,234,.1);
+    border-color: rgba(102,126,234,.28);
+}
+
+.pr-setting-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.pr-setting-title {
+    font-size: 14px; font-weight: 700; color: var(--text-1);
+    display: flex; align-items: center; gap: 8px;
+}
+.pr-setting-desc { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+
+/* Premium toggle */
+.pr-toggle {
+    appearance: none; -webkit-appearance: none;
+    width: 50px; height: 27px; border-radius: 27px;
+    background: rgba(148,163,184,.25);
+    border: 1.5px solid rgba(148,163,184,.2);
+    position: relative; cursor: pointer; outline: none;
+    flex-shrink: 0;
+    transition: background .3s, border-color .3s, box-shadow .3s;
+}
+.pr-toggle::after {
+    content:''; position:absolute; top:3px; left:3px;
+    width:19px; height:19px;
+    background: white; border-radius:50%;
+    box-shadow: 0 2px 7px rgba(0,0,0,.18);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), width .2s;
+}
+.pr-toggle:checked {
+    background: var(--aurora-anim); background-size: 300% 100%;
+    animation: pr-aurora 4s ease infinite;
+    border-color: transparent;
+    box-shadow: 0 0 0 4px rgba(102,126,234,.12), 0 4px 12px rgba(102,126,234,.28);
+}
+.pr-toggle:checked::after { transform: translateX(23px); }
+.pr-toggle:active::after  { width: 25px; }
+.pr-toggle:checked:active::after { transform: translateX(17px); width: 25px; }
+
+/* =============================================
+   ACHIEVEMENTS
+   ============================================= */
+.pr-badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(108px,1fr));
+    gap: 14px;
+}
+
+.pr-badge {
+    aspect-ratio: 1;
+    background: rgba(255,255,255,.9);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-xl);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; cursor: pointer; position: relative; overflow: hidden;
+    box-shadow: var(--sh-sm);
+    transition: all var(--t-spring);
+    animation: pr-up .5s cubic-bezier(.4,0,.2,1) both;
+}
+.pr-badge:nth-child(1){animation-delay:.15s}
+.pr-badge:nth-child(2){animation-delay:.22s}
+.pr-badge:nth-child(3){animation-delay:.29s}
+.pr-badge:nth-child(4){animation-delay:.36s}
+
+/* Gradient fill */
+.pr-badge::before {
+    content:''; position:absolute; inset:0; border-radius:inherit;
+    background: linear-gradient(135deg,
+        rgba(102,126,234,.07),rgba(168,85,247,.07),rgba(236,72,153,.07));
+    opacity:0; transition:opacity var(--t-slow);
+}
+/* Shine sweep */
+.pr-badge::after {
+    content:''; position:absolute;
+    top:0; left:-80%; width:50%; height:100%;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+    transform: skewX(-20deg);
+}
+
+.pr-badge:hover::before { opacity:1; }
+.pr-badge:hover::after  { animation: pr-sweep .6s ease forwards; }
+.pr-badge:hover {
+    transform: translateY(-8px) scale(1.05);
+    border-color: rgba(102,126,234,.38);
+    box-shadow: var(--sh-lg), 0 0 18px rgba(102,126,234,.14);
+    animation: pr-badgeglow 2s ease-in-out infinite;
+}
+
+.pr-badge-icon {
+    font-size: 32px;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,.12));
+    animation: pr-float 4s ease-in-out infinite;
+    position: relative; z-index:1;
+}
+.pr-badge:nth-child(2) .pr-badge-icon{animation-delay:.5s}
+.pr-badge:nth-child(3) .pr-badge-icon{animation-delay:1s}
+.pr-badge:nth-child(4) .pr-badge-icon{animation-delay:1.5s}
+
+.pr-badge-label {
+    font-size: 11px; font-weight: 700; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: .04em;
+    position: relative; z-index:1;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 1000px) {
+    .pr-grid { grid-template-columns: 1fr; }
+    .pr-sidebar { position:relative; top:0; }
+    .pr-risk-strip { grid-template-columns: repeat(2,1fr); }
+    .pr-rsc:nth-child(2)::after { display:none; }
+    .profile-page { padding: 28px 24px 60px; }
+}
+
+@media (max-width: 640px) {
+    .pr-settings-grid { grid-template-columns: 1fr; }
+    .pr-crumb { display:none; }
+    .pr-badges { grid-template-columns: repeat(4,1fr); }
+}
+
+@media (max-width: 480px) {
+    .pr-badges { grid-template-columns: repeat(2,1fr); }
+    .profile-page { padding: 16px 14px 60px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-page *, .profile-page *::before, .profile-page *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}
+
+    </style>
+</head>
+<body class="profile-body">
+<div class="profile-page">
+
+    <!-- TOP BAR -->
+    <div class="pr-topbar">
+        <div class="pr-brand">
+            <div class="pr-brand-icon">⬡</div>
+            <div class="pr-brand-name">RiskPulse</div>
+        </div>
+        <div class="pr-crumb">
+            <span style="color:#94a3b8">Dashboard</span>
+            <span class="pr-crumb-sep">›</span>
+            <span style="color:#475569">Users</span>
+            <span class="pr-crumb-sep">›</span>
+            <span class="pr-crumb-cur">{{ current_user.username }}</span>
+        </div>
+        <div class="pr-topbar-right">
+            <button class="pr-btn-ghost" onclick="window.history.back()">← Back</button>
+            <button class="pr-btn-aurora">+ New Analysis</button>
+        </div>
+    </div>
+
+    <!-- GRID -->
+    <div class="pr-grid">
+
+        <!-- SIDEBAR -->
+        <aside class="pr-sidebar pr-card">
+
+            <div class="pr-hero">
+                <div class="pr-hero-bg"></div>
+                <div class="pr-hero-grid"></div>
+                <div class="pr-hero-fade"></div>
+                <div class="pr-avatar-wrap">
+                    <div class="pr-avatar-ring">
+                        <div class="pr-avatar-inner">{{ current_user.username[0].upper() }}</div>
+                    </div>
+                    <div class="pr-online-dot"></div>
+                </div>
+            </div>
+
+            <div class="pr-identity">
+                <div class="pr-name">{{ current_user.username }}</div>
+                <div class="pr-role-pill">
+                    <span class="pr-role-dot"></span>
+                    Risk Analyst · Admin
+                </div>
+            </div>
+
+            <div class="pr-stats">
+                <div class="pr-stat">
+                    <span class="pr-stat-val">24</span>
+                    <span class="pr-stat-lbl">Projects</span>
+                </div>
+                <div class="pr-stat">
+                    <span class="pr-stat-val">156</span>
+                    <span class="pr-stat-lbl">Reports</span>
+                </div>
+                <div class="pr-stat">
+                    <span class="pr-stat-val">98%</span>
+                    <span class="pr-stat-lbl">Accuracy</span>
+                </div>
+            </div>
+
+            <div class="pr-info-list">
+                <div class="pr-info-row">
+                    <div class="pr-info-icon">👤</div>
+                    <div>
+                        <div class="pr-info-lbl">Username</div>
+                        <div class="pr-info-val">{{ current_user.username }}</div>
+                    </div>
+                </div>
+                <div class="pr-info-row">
+                    <div class="pr-info-icon">📧</div>
+                    <div>
+                        <div class="pr-info-lbl">Email Address</div>
+                        <div class="pr-info-val">{{ current_user.email }}</div>
+                    </div>
+                </div>
+                <div class="pr-info-row">
+                    <div class="pr-info-icon">📅</div>
+                    <div>
+                        <div class="pr-info-lbl">Member Since</div>
+                        <div class="pr-info-val">Jan 2024</div>
+                    </div>
+                </div>
+                <div class="pr-info-row">
+                    <div class="pr-info-icon">🛡️</div>
+                    <div>
+                        <div class="pr-info-lbl">Access Level</div>
+                        <div class="pr-info-val">Administrator</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pr-actions">
+                <button class="pr-btn pr-btn-primary">✏️ Edit Profile</button>
+                <button class="pr-btn pr-btn-secondary">🔒 Security Settings</button>
+            </div>
+
+        </aside>
+
+        <!-- CONTENT -->
+        <main class="pr-content">
+
+            <!-- RISK OVERVIEW + ACTIVITY -->
+            <div class="pr-card">
+                <div class="pr-card-head">
+                    <div class="pr-card-title">
+                        <div class="pr-card-title-icon pct-purple">📊</div>
+                        Risk Overview
+                    </div>
+                    <span class="pr-meta-tag">Last 30 days</span>
+                </div>
+
+                <div class="pr-risk-strip">
+                    <div class="pr-rsc">
+                        <div class="pr-rsc-icon rsi-c">🔴</div>
+                        <div>
+                            <div class="pr-rsc-num rn-c">4</div>
+                            <div class="pr-rsc-lbl">Critical</div>
+                        </div>
+                    </div>
+                    <div class="pr-rsc">
+                        <div class="pr-rsc-icon rsi-h">🟠</div>
+                        <div>
+                            <div class="pr-rsc-num rn-h">9</div>
+                            <div class="pr-rsc-lbl">High</div>
+                        </div>
+                    </div>
+                    <div class="pr-rsc">
+                        <div class="pr-rsc-icon rsi-m">🟡</div>
+                        <div>
+                            <div class="pr-rsc-num rn-m">7</div>
+                            <div class="pr-rsc-lbl">Medium</div>
+                        </div>
+                    </div>
+                    <div class="pr-rsc">
+                        <div class="pr-rsc-icon rsi-l">🟢</div>
+                        <div>
+                            <div class="pr-rsc-num rn-l">4</div>
+                            <div class="pr-rsc-lbl">Low</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pr-card-body">
+                    <div class="pr-sub-label">Recent Activity</div>
+                    <div class="pr-timeline">
+                        <div class="pr-titem">
+                            <div class="pr-tdot"></div>
+                            <div class="pr-tcontent">
+                                <div class="pr-ttitle">Generated Risk Report <span class="pr-rbadge prb-h">Score 72</span></div>
+                                <div class="pr-tdesc">Portfolio Performance Q1 2024 — Infrastructure cluster</div>
+                                <span class="pr-ttime">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="pr-titem">
+                            <div class="pr-tdot"></div>
+                            <div class="pr-tcontent">
+                                <div class="pr-ttitle">Analysis Completed <span class="pr-rbadge prb-m">Score 65</span></div>
+                                <div class="pr-tdesc">Alpha Development Project — Technical &amp; schedule risk flagged</div>
+                                <span class="pr-ttime">5 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="pr-titem">
+                            <div class="pr-tdot"></div>
+                            <div class="pr-tcontent">
+                                <div class="pr-ttitle">Risk Escalated <span class="pr-rbadge prb-c">Critical</span></div>
+                                <div class="pr-tdesc">RSK-007 Budget overrun escalated to Project Steering Committee</div>
+                                <span class="pr-ttime">1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="pr-titem">
+                            <div class="pr-tdot"></div>
+                            <div class="pr-tcontent">
+                                <div class="pr-ttitle">Mitigation Accepted <span class="pr-rbadge prb-l">Resolved</span></div>
+                                <div class="pr-tdesc">RSK-003 Vendor SLA risk — mitigation plan accepted and closed</div>
+                                <span class="pr-ttime">3 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div class="pr-settings-grid">
+                <div class="pr-setting-card">
+                    <div class="pr-setting-row">
+                        <div class="pr-setting-title">📧 Email Notifications</div>
+                        <input type="checkbox" class="pr-toggle" checked>
+                    </div>
+                    <div class="pr-setting-desc">Critical risk updates and escalation alerts delivered to your inbox instantly.</div>
+                </div>
+                <div class="pr-setting-card">
+                    <div class="pr-setting-row">
+                        <div class="pr-setting-title">🌙 Dark Mode</div>
+                        <input type="checkbox" class="pr-toggle" checked>
+                    </div>
+                    <div class="pr-setting-desc">Toggle between aurora light and high-contrast dark interface themes.</div>
+                </div>
+                <div class="pr-setting-card">
+                    <div class="pr-setting-row">
+                        <div class="pr-setting-title">🔔 Push Alerts</div>
+                        <input type="checkbox" class="pr-toggle" checked>
+                    </div>
+                    <div class="pr-setting-desc">Browser push notifications for newly flagged critical and high risks.</div>
+                </div>
+                <div class="pr-setting-card">
+                    <div class="pr-setting-row">
+                        <div class="pr-setting-title">👁️ Public Profile</div>
+                        <input type="checkbox" class="pr-toggle">
+                    </div>
+                    <div class="pr-setting-desc">Allow other team members to view your analysis activity and risk history.</div>
+                </div>
+            </div>
+
+            <!-- ACHIEVEMENTS -->
+            <div class="pr-card">
+                <div class="pr-card-head">
+                    <div class="pr-card-title">
+                        <div class="pr-card-title-icon pct-orange">🏆</div>
+                        Achievements
+                    </div>
+                    <span class="pr-meta-tag">4 earned</span>
+                </div>
+                <div class="pr-card-body">
+                    <div class="pr-badges">
+                        <div class="pr-badge">
+                            <div class="pr-badge-icon">🎯</div>
+                            <div class="pr-badge-label">Pioneer</div>
+                        </div>
+                        <div class="pr-badge">
+                            <div class="pr-badge-icon">📊</div>
+                            <div class="pr-badge-label">Analyst</div>
+                        </div>
+                        <div class="pr-badge">
+                            <div class="pr-badge-icon">⚡</div>
+                            <div class="pr-badge-label">Veteran</div>
+                        </div>
+                        <div class="pr-badge">
+                            <div class="pr-badge-icon">🔥</div>
+                            <div class="pr-badge-label">Streaker</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</div>
+</body>
+</html>
