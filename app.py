@@ -31,8 +31,8 @@ bcrypt = Bcrypt(app)
 
 login_manager.login_view = "login"
 
-# 🔥 ADD THIS (VERY IMPORTANT)
-with app.app_context():
+@app.before_request
+def create_tables():
     db.create_all()
 # Load ML model
 
@@ -79,8 +79,11 @@ class Project(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
-
+    try:
+        return User.query.get(int(user_id))
+    except Exception as e:
+        print("User load error:", e)
+        return None
 
 # ==============================
 # AUTH ROUTES
