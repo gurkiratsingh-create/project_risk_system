@@ -2597,3 +2597,106 @@ body::before {
 .analytics-summary .summary-item span:last-child {
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
 }
+/* MENU BUTTON */
+.menu-toggle {
+    display: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: white;
+    transition: transform 0.3s ease;
+}
+
+/* NAV LINKS DEFAULT */
+.nav-center {
+    display: flex;
+    gap: 20px;
+}
+
+/* 🔥 MOBILE PREMIUM */
+@media (max-width: 768px) {
+
+    .menu-toggle {
+        display: block;
+        z-index: 1100;
+    }
+
+    /* GLASS BACKGROUND MENU */
+    .nav-center {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        padding: 15px;
+
+        background: rgba(15, 15, 15, 0.85);
+        backdrop-filter: blur(12px);
+
+        transform: translateY(-120%);
+        opacity: 0;
+
+        transition: all 0.35s ease;
+        z-index: 1000;
+    }
+
+    /* ACTIVE STATE (SLIDE DOWN) */
+    .nav-center.active {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    /* NAV LINKS */
+    .nav-center a {
+        padding: 14px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        font-size: 16px;
+        transition: background 0.2s;
+    }
+
+    .nav-center a:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    /* HIDE PROFILE TEXT */
+    .mobile-hide {
+        display: none;
+    }
+}
+.nav-link {
+    position: relative;
+    padding: 8px 5px;
+    transition: color 0.3s ease;
+}
+
+/* Hover effect */
+.nav-link:hover {
+    color: #E8A857;
+}
+
+/* 🔥 Underline animation */
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    width: 0%;
+    height: 2px;
+    background: linear-gradient(90deg, #C97941, #E8A857);
+    transition: width 0.3s ease;
+}
+
+/* On hover */
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* Active link */
+.nav-link.active {
+    color: #E8A857;
+}
+
+/* Active underline stays */
+.nav-link.active::after {
+    width: 100%;
+}

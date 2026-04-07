@@ -305,6 +305,41 @@ async function addProject() {
         console.error(error);
     }
 }
+function toggleMenu() {
+    const nav = document.getElementById("navCenter");
+    const btn = document.getElementById("menuBtn");
+
+    nav.classList.toggle("active");
+
+    // Animate icon ☰ → ✕
+    if (nav.classList.contains("active")) {
+        btn.innerHTML = "✕";
+    } else {
+        btn.innerHTML = "☰";
+    }
+}
+
+// 🔥 CLOSE MENU WHEN CLICKING OUTSIDE
+document.addEventListener("click", function (e) {
+    const nav = document.getElementById("navCenter");
+    const btn = document.getElementById("menuBtn");
+
+    if (!nav.contains(e.target) && !btn.contains(e.target)) {
+        nav.classList.remove("active");
+        btn.innerHTML = "☰";
+    }
+});
+// Auto highlight current page
+document.addEventListener("DOMContentLoaded", function () {
+    const links = document.querySelectorAll(".nav-link");
+    const currentPath = window.location.pathname;
+
+    links.forEach(link => {
+        if (link.getAttribute("href") === currentPath) {
+            link.classList.add("active");
+        }
+    });
+});
 function toggleDropdown() {
     const dropdown = document.getElementById('profileDropdown');
     dropdown.classList.toggle('show');

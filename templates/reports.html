@@ -35,9 +35,9 @@
   @keyframes rp-shimmer  { 0%{opacity:.4;transform:translateX(-100%) rotate(25deg)} 100%{opacity:0;transform:translateX(400%) rotate(25deg)} }
   @keyframes rp-textflow { 0%{background-position:0% center} 100%{background-position:-200% center} }
 </style>
-
+     <div class="menu-toggle" onclick="toggleMenu()">☰</div>
     <!-- CENTER — Nav Links (set "active" on current page) -->
-    <div class="nav-center">
+    <div class="nav-center" id="navCenter">
         <a href="/"          class="nav-link">Dashboard</a>
         <a href="/projects"  class="nav-link">Projects</a>
         <a href="/analytics" class="nav-link">Analytics</a>
