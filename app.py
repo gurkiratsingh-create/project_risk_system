@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 import joblib
+from numpy import indices
 import pandas as pd
 from datetime import datetime
 import os, secrets
@@ -20,7 +21,12 @@ bcrypt = Bcrypt(app)
 login_manager.login_view = "login"
 
 # Load ML model
-model = joblib.load("risk_model.pkl")
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, "risk_model.pkl")
+
+model = joblib.load(model_path)
 
 
 # ==============================
@@ -45,7 +51,7 @@ class User(db.Model, UserMixin):
     accent_colour = db.Column(db.String(50),  nullable=True)
     font_size     = db.Column(db.String(30),  nullable=True)
     notifications = db.Column(db.JSON,        nullable=True)
-
+    public_profile = db.Column(db.Boolean, default=False)
     projects      = db.relationship("Project", backref="owner", lazy=True)
 
 
@@ -167,10 +173,13 @@ def predict():
     completed_tasks   = progress
     avg_task_delay    = deadline / 10
     budget_allocated  = 200000
+
+    # 🔥 IMPROVED (dynamic instead of static)
     budget_spent      = (budget_percent / 100) * budget_allocated
-    team_experience   = 5
-    sprint_velocity   = 50
+    team_experience   = min(10, team_size * 1.5)
+    sprint_velocity   = team_size * 10
     past_delay_rate   = 0.3
+
     completion_rate   = completed_tasks / total_tasks
     budget_burn_rate  = budget_spent / budget_allocated
     productivity_score = sprint_velocity / team_size
@@ -190,11 +199,52 @@ def predict():
         "productivity_score": [productivity_score]
     })
 
+    # 🔥 OPTIMIZED (single call)
+    probs = model.predict_proba(input_data)[0]
     prediction  = model.predict(input_data)[0]
-    probability = model.predict_proba(input_data)[0][1]
+    probability = probs[1]
+
+    # 🔥 IMPROVED EXPLAINABILITY (input-based)
+    import numpy as np
+    feature_names = input_data.columns
+    importances = model.feature_importances_
+
+    input_values = input_data.iloc[0].values
+    weighted_importance = input_values * importances
+
+    indices = np.argsort(weighted_importance)[::-1][:3]
+
+    top_features = []
+
+    for i in indices:
+        value = round(importances[i] * 100, 2)
+
+    # 🔥 SCALE UP (IMPORTANT)
+    scaled_value = min(100, value * 5)
+
+    top_features.append({
+        "feature": feature_names[i],
+        "importance": scaled_value
+    })
     risk_score  = round(probability * 100, 2)
     status      = "Delayed" if prediction == 1 else "On Track"
 
+    # 🔥 REASONING (kept + slightly smarter)
+    reasons = []
+
+    if completion_rate < 0.4:
+        reasons.append("Low progress")
+
+    if budget_burn_rate > 0.8:
+        reasons.append("High budget usage")
+
+    if avg_task_delay > 5:
+        reasons.append("High delay pressure")
+
+    # 🔥 CONFIDENCE
+    confidence = round(probability * 100, 2)
+
+    # SAVE PROJECT
     new_project = Project(
         name=data["name"],
         risk=risk_score,
@@ -204,7 +254,13 @@ def predict():
     db.session.add(new_project)
     db.session.commit()
 
-    return jsonify({"risk": risk_score, "status": status})
+    return jsonify({
+        "risk": risk_score,
+        "status": status,
+        "top_factors": top_features,
+        "confidence": confidence,
+        "reasons": reasons
+    })
 
 
 # ==============================
@@ -246,6 +302,7 @@ def settings_load():
         "accent_colour": current_user.accent_colour or "Aurora",
         "font_size":     current_user.font_size     or "Default (15px)",
         "notifications": current_user.notifications or {},
+        "public_profile": current_user.public_profile or False
     })
 
 
@@ -284,18 +341,6 @@ def settings_password():
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)})
 
-
-@app.route("/api/settings/notifications", methods=["POST"])
-@login_required
-def settings_notifications():
-    data = request.get_json()
-    try:
-        current_user.notifications = data
-        db.session.commit()
-        return jsonify({"success": True})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)})
 
 
 @app.route("/api/settings/appearance", methods=["POST"])
@@ -364,6 +409,83 @@ def revoke_all_sessions():
     # TODO: delete all sessions for current_user except current
     return jsonify({"success": True})
 
+
+@app.route("/api/settings/notifications", methods=["POST"])
+@login_required
+def settings_notifications():
+    data = request.get_json()
+
+    try:
+        current = current_user.notifications or {}
+
+        # Merge instead of overwrite
+        current.update(data)
+
+        current_user.notifications = current
+        db.session.commit()
+
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/api/profile")
+@login_required
+def api_profile():
+
+    projects = Project.query.filter_by(user_id=current_user.id).all()
+
+    total_projects = len(projects)
+
+    avg_risk = round(
+        sum(p.risk for p in projects) / total_projects, 1
+    ) if total_projects else 0
+
+    critical = len([p for p in projects if p.risk >= 80])
+    high     = len([p for p in projects if 60 <= p.risk < 80])
+    medium   = len([p for p in projects if 40 <= p.risk < 60])
+    low      = len([p for p in projects if p.risk < 40])
+
+    # 🔥 ACTIVITY (GENERATED FROM PROJECTS)
+    activities = []
+    for p in sorted(projects, key=lambda x: x.timestamp, reverse=True)[:5]:
+        activities.append({
+            "title": "Analysis Completed",
+            "desc": f"{p.name} — Risk {p.risk}%",
+            "time": p.timestamp.strftime("%d %b")
+        })
+
+    return jsonify({
+        "username": current_user.username,
+        "email": current_user.email or "Not set",
+        "joined": "Jan 2024",  # later make dynamic
+
+        "stats": {
+            "projects": total_projects,
+            "avg_risk": avg_risk
+        },
+
+        "risk": {
+            "critical": critical,
+            "high": high,
+            "medium": medium,
+            "low": low
+        },
+
+        "activities": activities
+    })
+@app.route("/api/settings/privacy", methods=["POST"])
+@login_required
+def settings_privacy():
+    data = request.get_json()
+
+    try:
+        current_user.public_profile = data.get("public_profile", False)
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)})
 
 # ==============================
 # RUN

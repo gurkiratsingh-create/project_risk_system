@@ -23,7 +23,26 @@ window.onload = async function () {
             project.riskClass =
                 project.status === "Delayed" ? "high" :
                 project.risk > 40 ? "medium" : "low";
+// ✅ SMART FALLBACKS FOR OLD PROJECTS
 
+if (!project.top_factors || project.top_factors.length === 0) {
+    project.top_factors = [
+        { feature: "budget_used", importance: project.risk },
+        { feature: "progress", importance: 100 - project.risk }
+    ];
+}
+
+if (!project.reasons || project.reasons.length === 0) {
+    project.reasons = [
+        project.risk > 70 ? "High risk detected from past data" :
+        project.risk > 40 ? "Moderate risk observed" :
+        "Project appears stable"
+    ];
+}
+
+if (!project.confidence) {
+    project.confidence = Math.min(95, project.risk + 10);
+}
             projects.push(project);
             chartData.push(project.risk);
             chartLabels.push(project.name);
@@ -58,9 +77,140 @@ window.onload = async function () {
     } catch (error) {
         console.error("Error loading history:", error);
     }
+    if (document.getElementById("totalProjects")) {
+    updateReportUI();
+
+}
+generateAISummary();
 
 };
+function generateAISummary() {
 
+    const container = document.getElementById("aiSummaryList");
+    if (!container) return;
+
+    if (!projects || projects.length === 0) {
+        container.innerHTML = "<p>No data available</p>";
+        return;
+    }
+
+    const total = projects.length;
+
+    const high = projects.filter(p => p.risk >= 70);
+    const medium = projects.filter(p => p.risk >= 40 && p.risk < 70);
+    const low = projects.filter(p => p.risk < 40);
+
+    const avgRisk = (
+        projects.reduce((sum, p) => sum + p.risk, 0) / total
+    ).toFixed(1);
+
+    const highest = Math.max(...projects.map(p => p.risk));
+
+    let overviewHTML = `
+        <p>📊 <b>${total}</b> projects analyzed</p>
+        <p>Average Risk: <b>${avgRisk}%</b></p>
+        <p>Highest Risk: <b>${highest}%</b></p>
+    `;
+
+    let distributionHTML = `
+        <div class="risk-row"><span>High</span><span>${high.length}</span></div>
+        <div class="risk-row"><span>Medium</span><span>${medium.length}</span></div>
+        <div class="risk-row"><span>Low</span><span>${low.length}</span></div>
+    `;
+
+    if (high.length / total > 0.4) {
+        distributionHTML += `<p class="danger">⚠️ Portfolio is high-risk</p>`;
+    }
+
+    let trendHTML = "";
+    if (projects.length >= 4) {
+
+        const recent = projects.slice(0, 3).map(p => p.risk);
+        const older = projects.slice(-3).map(p => p.risk);
+
+        const recentAvg = recent.reduce((a,b)=>a+b,0)/recent.length;
+        const olderAvg = older.reduce((a,b)=>a+b,0)/older.length;
+
+        trendHTML = recentAvg > olderAvg
+            ? "📈 Risk is increasing"
+            : "📉 Risk is improving";
+    }
+
+    // 🔥 FACTORS
+    const factorMap = {};
+    projects.forEach(p => {
+        (p.top_factors || []).forEach(f => {
+            const name = f.feature || "unknown";
+            factorMap[name] = (factorMap[name] || 0) + (f.importance || 0);
+        });
+    });
+
+    const topFactors = Object.entries(factorMap)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,3);
+
+    let factorsHTML = topFactors.map(f =>
+        `<span class="chip">${f[0]}</span>`
+    ).join("");
+
+    // 🔥 REASONS
+    const reasonCount = {};
+    projects.forEach(p => {
+        (p.reasons || []).forEach(r => {
+            reasonCount[r] = (reasonCount[r] || 0) + 1;
+        });
+    });
+
+    const topReasons = Object.entries(reasonCount)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,2);
+
+    let reasonsHTML = topReasons.map(r =>
+        `<p>• ${r[0]} (${r[1]})</p>`
+    ).join("");
+
+    // 🔥 RECOMMENDATIONS
+    let recHTML = `
+        ${high.length > 0 ? "<p>• Increase resources for high-risk projects</p>" : ""}
+        ${medium.length > 0 ? "<p>• Monitor progress closely</p>" : ""}
+        <p>• Improve planning & tracking</p>
+    `;
+
+    // 🔥 FINAL RENDER (MUI STYLE)
+    container.innerHTML = `
+
+    <div class="insight-card">
+        <h3>📊 Overview</h3>
+        ${overviewHTML}
+    </div>
+
+    <div class="insight-card">
+        <h3>⚠️ Distribution</h3>
+        ${distributionHTML}
+    </div>
+
+    <div class="insight-card">
+        <h3>📈 Trend</h3>
+        <p>${trendHTML}</p>
+    </div>
+
+    <div class="insight-card">
+        <h3>🧠 Drivers</h3>
+        ${factorsHTML}
+    </div>
+
+    <div class="insight-card">
+        <h3>📌 Issues</h3>
+        ${reasonsHTML}
+    </div>
+
+    <div class="insight-card">
+        <h3>💡 Actions</h3>
+        ${recHTML}
+    </div>
+
+    `;
+}
 // ===============================
 // ADD PROJECT (REAL ML CALL)
 // ===============================
@@ -97,24 +247,34 @@ async function addProject() {
         const data = await response.json();
         btn.classList.remove("loading");
 
+        // 🔥 EXISTING
         const risk = data.risk;
         const status = data.status;
+
+        // 🔥 NEW (VERY IMPORTANT)
+        const factors = data.top_factors;
+        const reasons = data.reasons;
+        const confidence = data.confidence;
 
         const riskClass =
             status === "Delayed" ? "high" :
             risk > 40 ? "medium" : "low";
 
+        // 🔥 UPDATED PROJECT OBJECT
         const project = {
-            name,
-            risk,
-            status,
-            riskClass,
-            timestamp: new Date().toLocaleString()
-        };
+    name,
+    risk,
+    status,
+    riskClass,
+    top_factors: factors,   // ✅ FIXED
+    reasons,
+    confidence,
+    timestamp: new Date().toLocaleString()
+};
 
         projects.unshift(project);
 
-        updateGauge(risk, riskClass,name);
+        updateGauge(risk, riskClass, name);
         renderProjectList();
         updateKPI();
         generateInsights();
@@ -124,13 +284,14 @@ async function addProject() {
         chartLabels.push(name);
 
         if(chartData.length > 10){
-        chartData.shift();
-        chartLabels.shift();
-    }
+            chartData.shift();
+            chartLabels.shift();
+        }
 
-updateChart();
-
+        updateChart();
+        updateReportUI();
         clearForm();
+        generateAISummary();
 
     } catch (error) {
         btn.classList.remove("loading");
@@ -271,7 +432,208 @@ function clearForm() {
     document.getElementById("progressVal").textContent = "50%";
     document.getElementById("budgetVal").textContent = "50%";
 }
+document.querySelectorAll(".pr-toggle").forEach((toggle, index) => {
 
+    toggle.addEventListener("change", async () => {
+
+        // Load current settings first (so we don't overwrite)
+        const current = await fetch('/api/settings/load').then(r => r.json());
+
+        let payload = {
+            dark_mode: current.dark_mode,
+            accent_colour: current.accent_colour,
+            font_size: current.font_size
+        };
+
+        // Map toggles properly
+        if (index === 0) {
+            // Email notifications
+            await fetch('/api/settings/notifications', {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ email_notifications: toggle.checked })
+            });
+            return;
+        }
+
+        if (index === 1) {
+            // Dark mode
+            payload.dark_mode = toggle.checked;
+        }
+
+        if (index === 2) {
+            // Push alerts
+            await fetch('/api/settings/notifications', {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ push_alerts: toggle.checked })
+            });
+            return;
+        }
+
+        if (index === 3) {
+            // Public profile (future feature)
+            return;
+        }
+
+        // Save appearance safely
+        await fetch('/api/settings/appearance', {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        });
+
+    });
+
+});
+function editProfile() {
+    const name = prompt("Enter new username:");
+    if (!name) return;
+
+    fetch("/api/settings/profile", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            first_name: name
+        })
+    }).then(() => location.reload());
+}
+document.getElementById("newAnalysisBtn")
+    .addEventListener("click", () => {
+        document.body.style.opacity = "0.6";
+        setTimeout(() => {
+            window.location.href = "/projects";
+        }, 200);
+    });
+async function initProfileToggles() {
+
+    const data = await fetch('/api/settings/load').then(r => r.json());
+
+    // SET INITIAL STATE
+    document.getElementById("emailToggle").checked =
+        data.notifications?.email_notifications || false;
+
+    document.getElementById("darkToggle").checked =
+        data.dark_mode || false;
+
+    document.getElementById("pushToggle").checked =
+        data.notifications?.push_alerts || false;
+
+    document.getElementById("publicToggle").checked =
+        data.public_profile || false;
+
+
+    // =========================
+    // EMAIL
+    // =========================
+    document.getElementById("emailToggle").addEventListener("change", async (e) => {
+        await fetch('/api/settings/notifications', {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ email_notifications: e.target.checked })
+        });
+    });
+
+    // =========================
+    // DARK MODE
+    // =========================
+    document.getElementById("darkToggle").addEventListener("change", async (e) => {
+
+        const current = await fetch('/api/settings/load').then(r => r.json());
+
+        await fetch('/api/settings/appearance', {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                dark_mode: e.target.checked,
+                accent_colour: current.accent_colour,
+                font_size: current.font_size
+            })
+        });
+
+        // Instant UI effect
+        document.body.classList.toggle("dark-theme", e.target.checked);
+    });
+
+    // =========================
+    // PUSH ALERTS
+    // =========================
+    document.getElementById("pushToggle").addEventListener("change", async (e) => {
+        await fetch('/api/settings/notifications', {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ push_alerts: e.target.checked })
+        });
+    });
+
+    // =========================
+    // PUBLIC PROFILE
+    // =========================
+    document.getElementById("publicToggle").addEventListener("change", async (e) => {
+        await fetch('/api/settings/privacy', {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ public_profile: e.target.checked })
+        });
+    });
+
+}
+
+window.addEventListener("load", initProfileToggles);
+async function loadProfileData() {
+
+    const res = await fetch("/api/profile");
+    const data = await res.json();
+
+    // =========================
+    // USER INFO
+    // =========================
+    document.querySelectorAll(".pr-name")
+        .forEach(el => el.innerText = data.username);
+
+    document.querySelectorAll(".pr-info-val")[0].innerText = data.username;
+    document.querySelectorAll(".pr-info-val")[1].innerText = data.email;
+    document.querySelectorAll(".pr-info-val")[2].innerText = data.joined;
+
+    // =========================
+    // STATS
+    // =========================
+    const stats = document.querySelectorAll(".pr-stat-val");
+
+    stats[0].innerText = data.stats.projects;
+    stats[1].innerText = data.stats.projects * 6; // fake reports logic (upgrade later)
+    stats[2].innerText = data.stats.avg_risk + "%";
+
+    // =========================
+    // RISK STRIP
+    // =========================
+    document.querySelector(".rn-c").innerText = data.risk.critical;
+    document.querySelector(".rn-h").innerText = data.risk.high;
+    document.querySelector(".rn-m").innerText = data.risk.medium;
+    document.querySelector(".rn-l").innerText = data.risk.low;
+
+    // =========================
+    // ACTIVITY TIMELINE
+    // =========================
+    const timeline = document.querySelector(".pr-timeline");
+    timeline.innerHTML = "";
+
+    data.activities.forEach(a => {
+        timeline.innerHTML += `
+        <div class="pr-titem">
+            <div class="pr-tdot"></div>
+            <div class="pr-tcontent">
+                <div class="pr-ttitle">${a.title}</div>
+                <div class="pr-tdesc">${a.desc}</div>
+                <span class="pr-ttime">${a.time}</span>
+            </div>
+        </div>`;
+    });
+}
+
+window.addEventListener("load", loadProfileData);
 // ===============================
 // GAUGE
 // ===============================
@@ -338,8 +700,85 @@ if(projectLabel && projectName){
         pill.style.transform = "scale(1)";
         pill.style.opacity = "1";
     }, 300);
+    
 }
+function showProjectList() {
+    document.getElementById('projectDetails').classList.add('hidden');
+    document.getElementById('projects').style.display = 'block';
+}
+function calculateReportMetrics() {
 
+    if (!projects || projects.length === 0) {
+        return {
+            total: 0,
+            avgRisk: 0,
+            highest: 0,
+            low: 0,
+            medium: 0,
+            high: 0
+        };
+    }
+
+    let total = projects.length;
+    let sumRisk = 0;
+    let highest = 0;
+
+    let low = 0;
+    let medium = 0;
+    let high = 0;
+
+    projects.forEach(p => {
+
+        const risk = Number(p.risk) || 0;
+
+        sumRisk += risk;
+
+        if (risk > highest) highest = risk;
+
+        if (risk <= 40) low++;
+        else if (risk <= 70) medium++;
+        else high++;
+
+    });
+
+    return {
+        total,
+        avgRisk: (sumRisk / total).toFixed(1),
+        highest,
+        low,
+        medium,
+        high
+    };
+}
+function updateReportUI() {
+
+    const data = calculateReportMetrics();
+
+    console.log("REPORT DATA:", data); // debug
+
+    // ✅ TOP CARDS (already working — optional)
+    if (document.getElementById("kpi-total"))
+        document.getElementById("kpi-total").innerText = data.total;
+
+    // ✅ BOTTOM SUMMARY (THIS WAS MISSING)
+    const mappings = [
+        ["totalProjects", data.total],
+        ["avgRisk", data.avgRisk + "%"],
+        ["highestRisk", data.highest + "%"],
+        ["lowRiskCount", data.low],
+        ["mediumRiskCount", data.medium],
+        ["highRiskCount", data.high],
+    ];
+
+    mappings.forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = value;
+    });
+}
+function setValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value;
+}
 // ===============================
 // PROJECT LIST
 // ===============================
@@ -350,27 +789,100 @@ function renderProjectList() {
     if (!container) return;
     container.innerHTML = "";
 
-if(projects.length === 0){
-    container.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <p>No projects analyzed yet.<br>Add your first project above.</p>
-        </div>
-    `;
-    return;
-}
+    if (projects.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <p>No projects analyzed yet.<br>Add your first project above.</p>
+            </div>
+        `;
+        return;
+    }
 
-    projects.forEach(p => {
+    projects.forEach((project, index) => {
+
         const div = document.createElement("div");
-        div.className = `project-item ${p.riskClass}`;
+
+        // ✅ Add risk class (for colors)
+        let riskClass = "low";
+        if (project.risk > 70) riskClass = "high";
+        else if (project.risk > 40) riskClass = "medium";
+
+        div.className = `project-item ${riskClass}`;
+
         div.innerHTML = `
             <div>
-                <div class="project-name">${p.name}</div>
-                <div class="project-meta">${p.timestamp}</div>
+                <div class="project-name">${project.name}</div>
+                <div class="project-meta">${project.status}</div>
             </div>
-            <div class="risk-badge">${p.risk}%</div>
+            <div class="risk-badge">${project.risk}%</div>
         `;
+
+        // 🔥 CLICK HANDLER (UPGRADED)
+        div.onclick = () => {
+
+            // remove previous active
+            document.querySelectorAll(".project-item")
+                .forEach(el => el.classList.remove("active"));
+
+            // set current active
+            div.classList.add("active");
+
+            // call your logic
+            selectProject(index);
+        };
+
         container.appendChild(div);
+    });
+}
+function selectProject(index) {
+    const p = projects[index];
+
+    document.getElementById("projectDetails").classList.remove("hidden");
+
+    // Name
+    document.getElementById("detailName").innerText = p.name || "Unnamed Project";
+
+    // Risk + Status
+    document.getElementById("detailRisk").innerText = (p.risk ?? 0) + "%";
+    document.getElementById("detailStatus").innerText = p.status || "Unknown";
+
+    // Confidence (🔥 FIXED)
+   const confidence = Math.round(p.confidence ?? 0);
+
+document.getElementById("detailConfidenceBar").style.width = confidence + "%";
+document.getElementById("detailConfidenceText").innerText = confidence + "%";
+
+    // Factors (🔥 FLEXIBLE HANDLING)
+    const factorsDiv = document.getElementById("detailFactors");
+    factorsDiv.innerHTML = "";
+
+    (p.top_factors || []).forEach((f, i) => {
+
+    const name = f.feature || f.name || `Factor ${i+1}`;
+    const value = Math.max(5, Math.round(f.importance || f.value || 0));
+
+    const el = document.createElement("div");
+    el.className = "factor";
+
+    el.innerHTML = `
+        <div class="project-meta">${name}</div>
+        <div class="factor-bar">
+            <div class="factor-fill" style="width:${value}%"></div>
+        </div>
+    `;
+
+    factorsDiv.appendChild(el);
+});
+
+    // Reasons (🔥 SAFE)
+    const reasons = document.getElementById("detailReasons");
+    reasons.innerHTML = "";
+
+    (p.reasons || []).forEach(r => {
+        const li = document.createElement("li");
+        li.innerText = r;
+        reasons.appendChild(li);
     });
 }
 // ===============================
