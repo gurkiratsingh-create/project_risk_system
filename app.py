@@ -6,7 +6,6 @@ from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import joblib
-import pandas as pd
 from datetime import datetime
 import os
 import secrets
@@ -99,16 +98,32 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "risk_model.pkl")
 
 model = None
-try:
-    model = joblib.load(model_path)
-    app.logger.info("✅ ML Model loaded successfully")
-    print("✅ ML Model loaded successfully")
-except FileNotFoundError:
-    app.logger.error(f"❌ Model file not found at: {model_path}")
-    print(f"❌ MODEL NOT FOUND: {model_path}")
-except Exception as e:
-    app.logger.error(f"❌ Model load error: {str(e)}")
-    print(f"❌ MODEL LOAD ERROR: {e}")
+def load_model():
+    global model
+    if model is None:
+        try:
+            model = joblib.load(model_path)
+            app.logger.info("✅ ML Model loaded successfully")
+        except Exception as e:
+            app.logger.error(f"❌ Model load error: {str(e)}")
+            model = None
+
+load_model()
+
+FEATURE_ORDER = [
+    "total_tasks",
+    "completed_tasks",
+    "avg_task_delay",
+    "budget_allocated",
+    "budget_spent",
+    "team_size",
+    "team_experience",
+    "sprint_velocity",
+    "past_delay_rate",
+    "completion_rate",
+    "budget_burn_rate",
+    "productivity_score"
+]
 
 # 🔥 FIX 7: Configuration for scalability
 DEFAULT_CONFIG = {
@@ -369,6 +384,11 @@ def predict():
         if team_size < 0:
             return jsonify({"error": "Team size must be positive"}), 400
             
+        if any(np.isnan(x) or np.isinf(x) for x in [
+            progress, deadline, budget_percent, team_size
+        ]):
+            return jsonify({"error": "Invalid numeric input"}), 400
+            
     except (ValueError, TypeError) as e:
         app.logger.error(f"Input parsing error: {str(e)}")
         return jsonify({"error": "Invalid input format"}), 400
@@ -392,20 +412,23 @@ def predict():
     budget_burn_rate  = budget_spent / budget_allocated
     productivity_score = sprint_velocity / team_size
 
-    input_data = pd.DataFrame({
-        "total_tasks":        [total_tasks],
-        "completed_tasks":    [completed_tasks],
-        "avg_task_delay":     [avg_task_delay],
-        "budget_allocated":   [budget_allocated],
-        "budget_spent":       [budget_spent],
-        "team_size":          [team_size],
-        "team_experience":    [team_experience],
-        "sprint_velocity":    [sprint_velocity],
-        "past_delay_rate":    [past_delay_rate],
-        "completion_rate":    [completion_rate],
-        "budget_burn_rate":   [budget_burn_rate],
-        "productivity_score": [productivity_score]
-    })
+    feature_dict = {
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "avg_task_delay": avg_task_delay,
+        "budget_allocated": budget_allocated,
+        "budget_spent": budget_spent,
+        "team_size": team_size,
+        "team_experience": team_experience,
+        "sprint_velocity": sprint_velocity,
+        "past_delay_rate": past_delay_rate,
+        "completion_rate": completion_rate,
+        "budget_burn_rate": budget_burn_rate,
+        "productivity_score": productivity_score
+    }
+
+    # deterministic ordering
+    input_data = np.array([[feature_dict[f] for f in FEATURE_ORDER]], dtype=np.float32)
 
     try:
         probs = model.predict_proba(input_data)[0]
@@ -415,22 +438,19 @@ def predict():
         app.logger.error(f"Model prediction error: {str(e)}")
         return jsonify({"error": "Prediction failed. Please try again."}), 500
 
-    # Explainability
-    feature_names = input_data.columns
-    importances = model.feature_importances_
+    if probability < 0 or probability > 1:
+        app.logger.error("Invalid probability output from model")
+        return jsonify({"error": "Model output invalid"}), 500
 
-    input_values = input_data.iloc[0].values
-    weighted_importance = input_values * importances
-    indices = np.argsort(weighted_importance)[::-1][:3]
+    # Explainability
+    importances = model.feature_importances_
+    indices = np.argsort(importances)[::-1][:3]
 
     top_features = []
     for i in indices:
-        value = round(importances[i] * 100, 2)
-        scaled_value = min(100, value * 5)
-
         top_features.append({
-            "feature": feature_names[i],
-            "importance": float(scaled_value)  # 🔥 FIX 1: Ensure Python float
+            "feature": FEATURE_ORDER[i],
+            "importance": float(round(importances[i] * 100, 2))
         })
 
     # 🔥 FIX 1: Convert numpy types to Python types
