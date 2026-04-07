@@ -12,7 +12,6 @@ import secrets
 import logging
 from logging.handlers import RotatingFileHandler
 import numpy as np
-import shap  # Added SHAP import
 
 # ==============================
 # APP INITIALIZATION
@@ -39,10 +38,10 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# FIX 6: File upload security
+# 🔥 FIX 6: File upload security
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max upload
 
-# FIX 9: Session security
+# 🔥 FIX 9: Session security
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") == "production"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -53,11 +52,11 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 hour
 # ==============================
 
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)  # FIX 3: Flask-Migrate for schema evolution
+migrate = Migrate(app, db)  # 🔥 FIX 3: Flask-Migrate for schema evolution
 login_manager = LoginManager(app)
 bcrypt = Bcrypt(app)
 
-# FIX 5: Rate limiting
+# 🔥 FIX 5: Rate limiting
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
@@ -68,7 +67,7 @@ limiter = Limiter(
 login_manager.login_view = "login"
 
 # ==============================
-# FIX 8: LOGGING SETUP
+# 🔥 FIX 8: LOGGING SETUP
 # ==============================
 
 if not app.debug:
@@ -92,37 +91,24 @@ if not app.debug:
     app.logger.info('Risk Predictor startup')
 
 # ==============================
-# FIX 2: LOAD ML MODEL & SHAP SAFELY
+# 🔥 FIX 2: LOAD ML MODEL SAFELY
 # ==============================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "risk_model.pkl")
 
 model = None
-explainer = None
-
 def load_model():
     global model
     if model is None:
         try:
             model = joblib.load(model_path)
-            app.logger.info("ML Model loaded successfully")
+            app.logger.info("✅ ML Model loaded successfully")
         except Exception as e:
-            app.logger.error(f"Model load error: {str(e)}")
+            app.logger.error(f"❌ Model load error: {str(e)}")
             model = None
 
-def load_explainer():
-    global explainer
-    if model is not None and explainer is None:
-        try:
-            explainer = shap.TreeExplainer(model)
-            app.logger.info("SHAP Explainer loaded successfully")
-        except Exception as e:
-            app.logger.error(f"SHAP load error: {str(e)}")
-            explainer = None
-
 load_model()
-load_explainer()
 
 FEATURE_ORDER = [
     "total_tasks",
@@ -139,7 +125,7 @@ FEATURE_ORDER = [
     "productivity_score"
 ]
 
-# FIX 7: Configuration for scalability
+# 🔥 FIX 7: Configuration for scalability
 DEFAULT_CONFIG = {
     "BUDGET_ALLOCATED": float(os.environ.get("DEFAULT_BUDGET", "200000")),
     "TOTAL_TASKS": int(os.environ.get("DEFAULT_TASKS", "100")),
@@ -205,8 +191,7 @@ class ApiKey(db.Model):
 # DATABASE INITIALIZATION
 # ==============================
 
-@app.before_first_request
-def create_tables():
+with app.app_context():
     db.create_all()
 
 @login_manager.user_loader
@@ -254,11 +239,11 @@ def register():
         if not password or len(password) < 6:
             return render_template("register.html", error="Password must be at least 6 characters")
 
-        # FIX 4: Check username uniqueness
+        # 🔥 FIX 4: Check username uniqueness
         if User.query.filter_by(username=username).first():
             return render_template("register.html", error="Username already exists")
 
-        # FIX 4: Check email uniqueness and validity
+        # 🔥 FIX 4: Check email uniqueness and validity
         if email:
             if not validate_email(email):
                 return render_template("register.html", error="Invalid email format")
@@ -369,16 +354,12 @@ def billing():
 
 @app.route("/predict", methods=["POST"])
 @login_required
-@limiter.limit("30 per minute")  # FIX 5: Rate limit predictions
+@limiter.limit("30 per minute")  # 🔥 FIX 5: Rate limit predictions
 def predict():
-    # FIX 2: Check if model is loaded
+    # 🔥 FIX 2: Check if model is loaded
     if model is None:
         app.logger.error("Prediction attempted but model not available")
         return jsonify({"error": "ML model not available. Please contact support."}), 503
-
-    if explainer is None:
-        app.logger.error("Explainability not available")
-        return jsonify({"error": "Explainability not available"}), 503
 
     data = request.get_json()
 
@@ -416,7 +397,7 @@ def predict():
     if team_size == 0:
         team_size = 1
 
-    # FIX 7: Use configurable values
+    # 🔥 FIX 7: Use configurable values
     total_tasks       = DEFAULT_CONFIG["TOTAL_TASKS"]
     completed_tasks   = progress
     avg_task_delay    = deadline / 10
@@ -461,46 +442,29 @@ def predict():
         app.logger.error("Invalid probability output from model")
         return jsonify({"error": "Model output invalid"}), 500
 
-    # SHAP explainability
-    try:
-        shap_values = explainer.shap_values(input_data)
+    # Explainability
+    importances = model.feature_importances_
+    indices = np.argsort(importances)[::-1][:3]
 
-        # For binary classification. Some versions of SHAP return a list, some return an array directly.
-        if isinstance(shap_values, list):
-            shap_vals = shap_values[1][0]  # class 1 (risk)
-        else:
-            shap_vals = shap_values[0]
+    top_features = []
+    for i in indices:
+        top_features.append({
+            "feature": FEATURE_ORDER[i],
+            "importance": float(round(importances[i] * 100, 2))
+        })
 
-        feature_contributions = []
-        for i, val in enumerate(shap_vals):
-            feature_contributions.append({
-                "feature": FEATURE_ORDER[i],
-                "impact": float(val)
-            })
-
-        # Sort by absolute impact
-        top_features = sorted(
-            feature_contributions,
-            key=lambda x: abs(x["impact"]),
-            reverse=True
-        )[:3]
-
-    except Exception as e:
-        app.logger.error(f"SHAP error: {str(e)}")
-        top_features = []
-
-    # Generate human-readable reasons
-    reasons = []
-    for f in top_features:
-        if f["impact"] > 0:
-            reasons.append(f"{f['feature']} increased risk")
-        else:
-            reasons.append(f"{f['feature']} reduced risk")
-
-    # FIX 1: Convert numpy types to Python types
+    # 🔥 FIX 1: Convert numpy types to Python types
     risk_score  = float(round(probability * 100, 2))
     confidence  = float(round(probability * 100, 2))
     status      = "Delayed" if prediction == 1 else "On Track"
+
+    reasons = []
+    if completion_rate < 0.4:
+        reasons.append("Low progress")
+    if budget_burn_rate > 0.8:
+        reasons.append("High budget usage")
+    if avg_task_delay > 5:
+        reasons.append("High delay pressure")
 
     # Save to database
     try:
@@ -592,7 +556,7 @@ def settings_profile():
         return jsonify({"success": False, "error": "No data provided"}), 400
     
     try:
-        # FIX 4: Validate email if changing
+        # 🔥 FIX 4: Validate email if changing
         new_email = data.get("email", "").strip()
         if new_email and new_email != current_user.email:
             if not validate_email(new_email):
@@ -680,7 +644,7 @@ def settings_avatar():
     if not file:
         return jsonify({"success": False, "error": "No file received"}), 400
 
-    # FIX 6: Enhanced file validation
+    # 🔥 FIX 6: Enhanced file validation
     if file.filename == '':
         return jsonify({"success": False, "error": "No file selected"}), 400
 
@@ -912,7 +876,6 @@ def health():
     return jsonify({
         "status": "healthy",
         "model_loaded": model is not None,
-        "explainer_loaded": explainer is not None,
         "database": "connected"
     })
 
@@ -922,14 +885,13 @@ def health():
 # ==============================
 
 print("=" * 60)
-print("RISK PREDICTOR - ENHANCED VERSION")
+print("🚀 RISK PREDICTOR - ENHANCED VERSION")
 print("=" * 60)
-print(f"Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
-print(f"ML Model: {'Loaded' if model else 'Not Available'}")
-print(f"SHAP Explainer: {'Loaded' if explainer else 'Not Available'}")
-print(f"Session Security: {'Enabled' if app.config['SESSION_COOKIE_SECURE'] else 'Development Mode'}")
-print(f"Rate Limiting: Enabled")
-print(f"Logging: {'Enabled' if not app.debug else 'Debug Mode'}")
+print(f"📊 Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+print(f"🤖 ML Model: {'✅ Loaded' if model else '❌ Not Available'}")
+print(f"🔒 Session Security: {'✅ Enabled' if app.config['SESSION_COOKIE_SECURE'] else '⚠️  Development Mode'}")
+print(f"⚡ Rate Limiting: ✅ Enabled")
+print(f"📝 Logging: {'✅ Enabled' if not app.debug else '⚠️  Debug Mode'}")
 print("=" * 60)
 
 # ==============================
@@ -937,6 +899,9 @@ print("=" * 60)
 # ==============================
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    
     # Use environment variables for production
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_ENV") != "production"
