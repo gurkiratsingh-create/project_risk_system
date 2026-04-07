@@ -178,19 +178,31 @@ def billing():
 @app.route("/predict", methods=["POST"])
 @login_required
 def predict():
-    data = request.json
+    data = request.get_json()
 
-    progress       = data["progress"]
-    deadline       = data["deadline"]
-    budget_percent = data["budget"]
-    team_size      = data["team"]
+    # 🔴 SAFETY CHECK
+    if not data:
+        return jsonify({"error": "No data received"}), 400
+
+    try:
+        progress       = float(data.get("progress", 0))
+        deadline       = float(data.get("deadline", 0))
+        budget_percent = float(data.get("budget", 0))
+        team_size      = float(data.get("team", 0))
+        name           = data.get("name", "Untitled Project")
+    except Exception as e:
+        print("❌ Input parsing error:", e)
+        return jsonify({"error": "Invalid input"}), 400
+
+    # 🔴 PREVENT DIVISION ERRORS
+    if team_size == 0:
+        team_size = 1
 
     total_tasks       = 100
     completed_tasks   = progress
     avg_task_delay    = deadline / 10
     budget_allocated  = 200000
 
-    # 🔥 IMPROVED (dynamic instead of static)
     budget_spent      = (budget_percent / 100) * budget_allocated
     team_experience   = min(10, team_size * 1.5)
     sprint_velocity   = team_size * 10
@@ -215,60 +227,59 @@ def predict():
         "productivity_score": [productivity_score]
     })
 
-    # 🔥 OPTIMIZED (single call)
-    probs = model.predict_proba(input_data)[0]
-    prediction  = model.predict(input_data)[0]
-    probability = probs[1]
+    try:
+        probs = model.predict_proba(input_data)[0]
+        prediction  = model.predict(input_data)[0]
+        probability = probs[1]
+    except Exception as e:
+        print("❌ MODEL ERROR:", e)
+        return jsonify({"error": "Model failed"}), 500
 
-    # 🔥 IMPROVED EXPLAINABILITY (input-based)
+    # 🔥 EXPLAINABILITY
     import numpy as np
     feature_names = input_data.columns
     importances = model.feature_importances_
 
     input_values = input_data.iloc[0].values
     weighted_importance = input_values * importances
-
     indices = np.argsort(weighted_importance)[::-1][:3]
 
     top_features = []
-
     for i in indices:
         value = round(importances[i] * 100, 2)
-
-    # 🔥 SCALE UP (IMPORTANT)
         scaled_value = min(100, value * 5)
 
         top_features.append({
             "feature": feature_names[i],
             "importance": scaled_value
         })
+
     risk_score  = round(probability * 100, 2)
     status      = "Delayed" if prediction == 1 else "On Track"
 
-    # 🔥 REASONING (kept + slightly smarter)
     reasons = []
-
     if completion_rate < 0.4:
         reasons.append("Low progress")
-
     if budget_burn_rate > 0.8:
         reasons.append("High budget usage")
-
     if avg_task_delay > 5:
         reasons.append("High delay pressure")
 
-    # 🔥 CONFIDENCE
     confidence = round(probability * 100, 2)
 
-    # SAVE PROJECT
-    new_project = Project(
-        name=data["name"],
-        risk=risk_score,
-        status=status,
-        owner=current_user
-    )
-    db.session.add(new_project)
-    db.session.commit()
+    try:
+        new_project = Project(
+            name=name,
+            risk=risk_score,
+            status=status,
+            owner=current_user
+        )
+        db.session.add(new_project)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print("❌ DB ERROR:", e)
+        return jsonify({"error": "Database error"}), 500
 
     return jsonify({
         "risk": risk_score,
@@ -277,7 +288,6 @@ def predict():
         "confidence": confidence,
         "reasons": reasons
     })
-
 
 # ==============================
 # PROJECT HISTORY

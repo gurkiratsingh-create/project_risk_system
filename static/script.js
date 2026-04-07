@@ -222,10 +222,16 @@ async function addProject() {
     const budget = parseFloat(document.getElementById("budget").value);
     const team = parseFloat(document.getElementById("team").value);
 
-    if (!name || isNaN(deadline) || isNaN(team)) {
-        showToast("⚠️ Please fill required fields.");
-        return;
-    }
+    if (
+    !name ||
+    isNaN(progress) ||
+    isNaN(deadline) ||
+    isNaN(budget) ||
+    isNaN(team)
+) {
+    showToast("⚠️ Please fill all fields correctly.");
+    return;
+}
 
     const btn = document.getElementById("analyzeBtn");
     btn.classList.add("loading");
