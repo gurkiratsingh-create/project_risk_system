@@ -31,9 +31,6 @@ bcrypt = Bcrypt(app)
 
 login_manager.login_view = "login"
 
-@app.before_request
-def create_tables():
-    db.create_all()
 # Load ML model
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -76,6 +73,8 @@ class Project(db.Model):
     timestamp = db.Column(db.DateTime,  default=datetime.utcnow)
     user_id   = db.Column(db.Integer,   db.ForeignKey("user.id"), nullable=False)
 
+with app.app_context():
+    db.create_all()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -138,6 +137,7 @@ def logout():
 @app.route("/")
 @login_required
 def dashboard():
+    print("🔥 DASHBOARD HIT")
     return render_template("dashboard.html")
 
 @app.route("/projects")
@@ -236,12 +236,12 @@ def predict():
         value = round(importances[i] * 100, 2)
 
     # 🔥 SCALE UP (IMPORTANT)
-    scaled_value = min(100, value * 5)
+        scaled_value = min(100, value * 5)
 
-    top_features.append({
-        "feature": feature_names[i],
-        "importance": scaled_value
-    })
+        top_features.append({
+            "feature": feature_names[i],
+            "importance": scaled_value
+        })
     risk_score  = round(probability * 100, 2)
     status      = "Delayed" if prediction == 1 else "On Track"
 
