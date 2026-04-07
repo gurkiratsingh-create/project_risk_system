@@ -2303,3 +2303,259 @@ h1, .subtitle, .nav-link, .profile-name,
 .dark-theme .pr-setting-card {
     box-shadow: 0 0 20px rgba(99,102,241,0.15);
 }
+/* ===============================
+   🔒 FORCE DARK THEME — ALL DEVICES
+   Overrides light warm defaults to
+   match the dark premium look
+=============================== */
+
+:root {
+    /* ── Core Backgrounds → DARK ── */
+    --bg-primary:     #0D0905;
+    --bg-secondary:   #110C07;
+    --bg-tertiary:    #1A1008;
+    --bg-deep:        #221408;
+
+    /* ── Surface → Dark Glass ── */
+    --surface:           rgba(20, 12, 5, 0.95);
+    --surface-warm:      rgba(26, 16, 8, 0.92);
+    --surface-elevated:  rgba(30, 18, 8, 0.97);
+    --surface-hover:     rgba(36, 22, 10, 0.90);
+    --surface-glass:     rgba(20, 12, 5, 0.75);
+
+    /* ── Border → Subtle Amber on Dark ── */
+    --border-light:  rgba(200, 134, 42, 0.12);
+    --border-mid:    rgba(200, 134, 42, 0.22);
+    --border-strong: rgba(200, 134, 42, 0.38);
+
+    /* ── Text → Light Cream ── */
+    --text-1: #FEF3D0;
+    --text-2: #D4A870;
+    --text-3: #A07840;
+    --text-4: #705030;
+
+    /* ── Shadows → Deeper ── */
+    --shadow-xs:  0 1px 3px rgba(0, 0, 0, 0.35);
+    --shadow-sm:  0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md:  0 6px 16px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0,0,0,0.3);
+    --shadow-lg:  0 14px 32px rgba(0, 0, 0, 0.55), 0 4px 8px rgba(0,0,0,0.3);
+    --shadow-xl:  0 24px 56px rgba(0, 0, 0, 0.65), 0 8px 16px rgba(0,0,0,0.35);
+    --shadow-2xl: 0 40px 80px rgba(0, 0, 0, 0.75);
+}
+
+/* ── Body: Force Dark Background ── */
+body {
+    background: #110C07 !important;
+    color: #FEF3D0 !important;
+}
+
+/* ── Navigation ── */
+.top-nav {
+    background: rgba(13, 9, 5, 0.95) !important;
+    border-bottom-color: rgba(200, 134, 42, 0.18) !important;
+}
+
+/* ── Cards ── */
+.card {
+    background: rgba(20, 12, 5, 0.80) !important;
+    border-color: rgba(200, 134, 42, 0.14) !important;
+}
+
+/* ── KPI Cards ── */
+.kpi-card {
+    background: rgba(22, 13, 5, 0.88) !important;
+    border-color: rgba(200, 134, 42, 0.18) !important;
+}
+
+.kpi-value {
+    color: #F5C96A !important;
+    -webkit-text-fill-color: #F5C96A !important;
+    background: none !important;
+    text-shadow: 0 0 20px rgba(245, 201, 106, 0.35) !important;
+}
+
+.kpi-label {
+    color: #A07840 !important;
+    -webkit-text-fill-color: #A07840 !important;
+}
+
+/* ── Project Items ── */
+.project-item {
+    background: rgba(22, 13, 5, 0.75) !important;
+}
+.project-item:hover {
+    background: rgba(30, 18, 8, 0.92) !important;
+}
+
+/* ── Tables ── */
+table {
+    background: rgba(18, 11, 4, 0.90) !important;
+}
+thead th {
+    background: rgba(26, 16, 8, 0.95) !important;
+    color: #C8862A !important;
+    -webkit-text-fill-color: #C8862A !important;
+}
+tbody td {
+    color: #FEF3D0 !important;
+    -webkit-text-fill-color: #FEF3D0 !important;
+    border-bottom-color: rgba(200, 134, 42, 0.10) !important;
+}
+tbody tr:hover {
+    background: rgba(200, 134, 42, 0.07) !important;
+}
+
+/* ── Inputs ── */
+input[type="text"],
+input[type="number"],
+input:not([type="range"]):not([type="checkbox"]) {
+    background: rgba(20, 12, 5, 0.85) !important;
+    border-color: rgba(200, 134, 42, 0.22) !important;
+    color: #FEF3D0 !important;
+}
+input:focus {
+    background: rgba(26, 16, 8, 0.95) !important;
+    border-color: #C8862A !important;
+}
+input::placeholder {
+    color: #705030 !important;
+}
+
+/* ── Profile / Nav text ── */
+.profile {
+    background: rgba(22, 13, 5, 0.85) !important;
+    border-color: rgba(200, 134, 42, 0.22) !important;
+}
+.profile:hover {
+    background: rgba(30, 18, 8, 0.95) !important;
+}
+.profile-name {
+    color: #FEF3D0 !important;
+    -webkit-text-fill-color: #FEF3D0 !important;
+}
+.profile-role {
+    color: #A07840 !important;
+    -webkit-text-fill-color: #A07840 !important;
+}
+
+/* ── Nav Links ── */
+.nav-link {
+    color: #D4A870 !important;
+    -webkit-text-fill-color: #D4A870 !important;
+}
+.nav-link:hover, .nav-link.active {
+    color: #F5C96A !important;
+    -webkit-text-fill-color: #F5C96A !important;
+    background: rgba(200, 134, 42, 0.12) !important;
+}
+
+/* ── Dropdown ── */
+.dropdown {
+    background: rgba(15, 9, 3, 0.98) !important;
+    border-color: rgba(200, 134, 42, 0.22) !important;
+}
+.dropdown-item {
+    color: #D4A870 !important;
+    -webkit-text-fill-color: #D4A870 !important;
+}
+.dropdown-item:hover {
+    background: rgba(200, 134, 42, 0.12) !important;
+    color: #FEF3D0 !important;
+    -webkit-text-fill-color: #FEF3D0 !important;
+}
+
+/* ── Subtitle & body text ── */
+.subtitle {
+    color: #D4A870 !important;
+    -webkit-text-fill-color: #D4A870 !important;
+}
+.card-title {
+    color: #C8862A !important;
+    -webkit-text-fill-color: #C8862A !important;
+}
+.project-name {
+    color: #FEF3D0 !important;
+    -webkit-text-fill-color: #FEF3D0 !important;
+}
+.project-meta {
+    color: #A07840 !important;
+    -webkit-text-fill-color: #A07840 !important;
+}
+.input-label {
+    color: #A07840 !important;
+    -webkit-text-fill-color: #A07840 !important;
+}
+
+/* ── Page indicator ── */
+.page-indicator {
+    background: rgba(20, 12, 5, 0.90) !important;
+    border-color: rgba(200, 134, 42, 0.28) !important;
+}
+.page-indicator-home {
+    color: #A07840 !important;
+    -webkit-text-fill-color: #A07840 !important;
+}
+
+/* ── AI Summary ── */
+.ai-summary {
+    background: rgba(20, 12, 5, 0.80) !important;
+    border-color: rgba(200, 134, 42, 0.18) !important;
+}
+.summary-title {
+    color: #FEF3D0 !important;
+    -webkit-text-fill-color: #FEF3D0 !important;
+}
+.ai-summary li {
+    color: #D4A870 !important;
+}
+
+/* ── Detail reasons list ── */
+#detailReasons li {
+    background: rgba(22, 13, 5, 0.75) !important;
+    border-color: rgba(200, 134, 42, 0.12) !important;
+    color: #D4A870 !important;
+}
+#detailReasons li:hover {
+    background: rgba(200, 134, 42, 0.10) !important;
+}
+
+/* ── Insight boxes ── */
+.insight-text {
+    color: #D4A870 !important;
+    -webkit-text-fill-color: #D4A870 !important;
+}
+
+/* ── Footer ── */
+footer {
+    background: rgba(10, 6, 2, 0.95) !important;
+    border-top-color: rgba(200, 134, 42, 0.15) !important;
+    color: #A07840 !important;
+}
+
+/* ── Gauge text ── */
+.gauge-number {
+    fill: #FEF3D0 !important;
+}
+.gauge-label {
+    fill: #A07840 !important;
+}
+.gauge-project-name {
+    color: #D4A870 !important;
+    -webkit-text-fill-color: #D4A870 !important;
+}
+
+/* ── Scrollbar to dark ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(10, 6, 2, 0.5); }
+::-webkit-scrollbar-thumb { background: rgba(200, 134, 42, 0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(200, 134, 42, 0.55); }
+
+/* ── Background mesh → darker warm glow ── */
+body::before {
+    background:
+        radial-gradient(at 20% 10%, rgba(200, 134, 42, 0.08) 0px, transparent 55%),
+        radial-gradient(at 85% 5%,  rgba(192,  82, 42, 0.06) 0px, transparent 50%),
+        radial-gradient(at 5%  55%, rgba(212, 164, 55, 0.07) 0px, transparent 50%),
+        radial-gradient(at 80% 55%, rgba(124,  82, 48, 0.05) 0px, transparent 50%),
+        radial-gradient(at 50% 95%, rgba(200, 134, 42, 0.07) 0px, transparent 50%) !important;
+}
