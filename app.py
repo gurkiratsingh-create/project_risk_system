@@ -10,8 +10,9 @@ import os, secrets
 
 app = Flask(__name__)
 
-app.config["SECRET_KEY"] = "supersecretkey"
-import os
+
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback_secret")
+
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
@@ -30,8 +31,10 @@ bcrypt = Bcrypt(app)
 
 login_manager.login_view = "login"
 
+# 🔥 ADD THIS (VERY IMPORTANT)
+with app.app_context():
+    db.create_all()
 # Load ML model
-import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "risk_model.pkl")
