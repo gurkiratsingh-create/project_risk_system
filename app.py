@@ -512,7 +512,7 @@ def settings_privacy():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)})
-
+print("🚀 DATABASE:", app.config["SQLALCHEMY_DATABASE_URI"])
 # ==============================
 # RUN
 # ==============================
